@@ -92,6 +92,17 @@ EMAIL_RETRY_MAX_DELAY=10.0
 
 **Nota de seguridad:** En producción, siempre usa `SMTP_VALIDATE_CERT=true` para prevenir ataques MITM. Solo desactívalo en desarrollo si es necesario.
 
+**Troubleshooting SMTP común:**
+
+- **Error de autenticación**: Verifica que `SMTP_USER` y `SMTP_PASSWORD` sean correctos. En Gmail, necesitas usar una App Password, no tu contraseña normal.
+- **Error de conexión**: Verifica que `SMTP_HOST` y `SMTP_PORT` sean correctos para tu proveedor.
+- **Error SSL/TLS**: Si tienes problemas con certificados en desarrollo, puedes temporalmente usar `SMTP_VALIDATE_CERT=false`, pero nunca en producción.
+- **Timeout**: Aumenta los valores de retry (`EMAIL_MAX_RETRIES`, `EMAIL_RETRY_MAX_DELAY`) si tienes conexiones lentas.
+- **Puerto incorrecto**: 
+  - Puerto 587: Usa STARTTLS (recomendado)
+  - Puerto 465: Usa TLS directo
+  - Puerto 25: Generalmente bloqueado por ISPs
+
 4. **Si usas MongoDB Local**, iniciar MongoDB:
 ```bash
 docker-compose up -d

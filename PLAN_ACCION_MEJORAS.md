@@ -112,24 +112,26 @@
   4. ✅ Documentación completa en README con ejemplos de proveedores comunes
   5. ✅ Documentadas mejores prácticas de seguridad
 
-#### Paso 9: Extraer lógica duplicada de índices
+#### Paso 9: Extraer lógica duplicada de índices ⚡ [COMPLETADO]
 - **Objetivo:** Reducir duplicación de código
 - **Impacto:** Mantenibilidad
 - **Esfuerzo:** 1 hora
-- **Pasos:**
-  1. Crear función `create_index_safe()` en script de inicialización
-  2. Refactorizar código duplicado
-  3. Agregar tests
+- **Estado:** ✅ COMPLETADO (realizado en Paso 6)
+- **Pasos realizados:**
+  1. ✅ Creada función `create_index_safe()` en módulo compartido `mongo_indexes.py`
+  2. ✅ Refactorizado código duplicado (script y aplicación usan mismo módulo)
+  3. ⏳ Tests (pueden agregarse en futura mejora)
 
-#### Paso 10: Documentar configuración de email
+#### Paso 10: Documentar configuración de email ⚡ [COMPLETADO]
 - **Objetivo:** Facilitar configuración para nuevos desarrolladores
 - **Impacto:** Documentación
 - **Esfuerzo:** 1-2 horas
-- **Pasos:**
-  1. Agregar sección en README sobre configuración SMTP
-  2. Documentar variables de entorno necesarias
-  3. Incluir ejemplos para diferentes proveedores (Gmail, SendGrid, etc.)
-  4. Agregar troubleshooting común
+- **Estado:** ✅ COMPLETADO
+- **Pasos realizados:**
+  1. ✅ Agregada sección completa en README sobre configuración SMTP
+  2. ✅ Documentadas todas las variables de entorno necesarias
+  3. ✅ Incluidos ejemplos para Gmail, SendGrid, Outlook, AWS SES
+  4. ✅ Agregado troubleshooting común (autenticación, conexión, SSL/TLS, timeouts, puertos)
 
 ---
 
