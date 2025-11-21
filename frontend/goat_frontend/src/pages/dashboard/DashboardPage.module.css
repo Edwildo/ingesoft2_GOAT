@@ -1,0 +1,133 @@
+.dashboardPage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-white);
+}
+
+.dashboardHeader {
+  border-bottom: 2px solid var(--color-gray-900);
+  padding: var(--spacing-lg) 0;
+  background-color: var(--color-white);
+}
+
+.headerContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dashboardTitle {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.userEmail {
+  color: var(--color-gray-700);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.dashboardContent {
+  flex: 1;
+  padding: var(--spacing-2xl) 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
+}
+
+.welcomeCard {
+  padding: var(--spacing-2xl);
+  border: 2px solid var(--color-gray-900);
+}
+
+.welcomeTitle {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  color: var(--color-gray-900);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--color-gray-300);
+  padding-bottom: var(--spacing-md);
+}
+
+.welcomeText {
+  text-align: center;
+  color: var(--color-gray-700);
+  margin-bottom: var(--spacing-xl);
+  font-size: 1.125rem;
+}
+
+.userInfo {
+  display: grid;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background-color: var(--color-gray-100);
+  border: 1px solid var(--color-gray-300);
+}
+
+.infoItem {
+  padding: var(--spacing-sm) 0;
+  color: var(--color-gray-700);
+  font-size: 1rem;
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.infoItem:last-child {
+  border-bottom: none;
+}
+
+.infoItem strong {
+  color: var(--color-gray-900);
+  font-weight: 600;
+  margin-right: var(--spacing-sm);
+}
+
+.dashboardFooter {
+  border-top: 1px solid var(--color-gray-300);
+  padding: var(--spacing-lg) 0;
+  text-align: center;
+  color: var(--color-gray-600);
+  font-size: 0.875rem;
+  background-color: var(--color-gray-100);
+}
+
+@media (max-width: 768px) {
+  .headerContent {
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  .dashboardTitle {
+    font-size: 1.5rem;
+  }
+
+  .welcomeCard {
+    padding: var(--spacing-lg);
+  }
+
+  .welcomeTitle {
+    font-size: 1.5rem;
+  }
+}
+
