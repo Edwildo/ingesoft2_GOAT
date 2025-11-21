@@ -72,6 +72,20 @@ class Settings(BaseSettings):
         description="URI de almacenamiento para rate limiting (memory:// para desarrollo, redis:// para producción)",
     )
 
+    # Email Retry Configuration
+    email_max_retries: int = Field(
+        default=3,
+        description="Número máximo de intentos para enviar email",
+    )
+    email_retry_initial_delay: float = Field(
+        default=1.0,
+        description="Delay inicial en segundos para retry de emails",
+    )
+    email_retry_max_delay: float = Field(
+        default=10.0,
+        description="Delay máximo en segundos para retry de emails",
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

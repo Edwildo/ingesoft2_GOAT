@@ -24,6 +24,7 @@ from datetime import datetime, timedelta
 from goat_catalog.shared.config import get_settings
 from goat_catalog.shared.utils.logging_utils import sanitize_email, should_log_debug
 from goat_catalog.shared.utils.security import hash_otp
+from ...domain.exceptions.email_send_exception import EmailSendException
 
 logger = logging.getLogger(__name__)
 
@@ -54,16 +55,26 @@ class GenerateOTPUseCase:
         otp_code: str,
         purpose,
     ) -> None:
-        """Envía el email con el OTP si el servicio está disponible."""
+        """Envía el email con el OTP si el servicio está disponible.
+        
+        Raises:
+            EmailSendException: Si hay error al enviar el email
+        """
         if self._email_service:
             try:
                 await self._email_service.send_otp_email(email, otp_code, purpose)
+            except EmailSendException:
+                raise
             except Exception as e:
                 sanitized_email = sanitize_email(email.value)
                 logger.error(
-                    f"Error al enviar email OTP a {sanitized_email}",
+                    f"Error inesperado al enviar email OTP a {sanitized_email}",
                     exc_info=should_log_debug(),
                 )
+                raise EmailSendException(
+                    f"Error al enviar email: {type(e).__name__}",
+                    user_message="Error al enviar el email. Por favor intenta más tarde.",
+                ) from e
         else:
             logger.warning("Servicio de email no configurado. OTP generado pero no enviado.")
 
