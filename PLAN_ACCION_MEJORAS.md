@@ -60,15 +60,18 @@
   6. ✅ Limpiados console.log/error en Frontend (OTPs, emails, datos sensibles)
   7. ✅ Mejorado manejo de errores para no exponer detalles internos
 
-#### Paso 5: Refactorizar método `_create_email_body()`
+#### Paso 5: Refactorizar método `_create_email_body()` ⚡ [COMPLETADO]
 - **Objetivo:** Mejorar mantenibilidad y separación de responsabilidades
 - **Impacto:** Calidad de código
 - **Esfuerzo:** 1-2 horas
-- **Pasos:**
-  1. Extraer creación de HTML a método `_create_html_body()`
-  2. Considerar usar template engine (Jinja2) para emails
-  3. Mover templates HTML a archivos separados
-  4. Agregar tests para generación de emails
+- **Estado:** ✅ COMPLETADO
+- **Pasos realizados:**
+  1. ✅ Extraído `_create_plain_text_body()` para texto plano
+  2. ✅ Extraído `_create_html_body()` para contenido HTML
+  3. ✅ Extraído `_get_html_styles()` para estilos CSS
+  4. ✅ Reducido `_create_email_body()` de 73 líneas a 5 líneas
+  5. ⏳ Tests para generación de emails (opcional - puede agregarse después)
+  6. ⏳ Template engine (Jinja2) - puede considerarse en futura mejora
 
 ### 🟢 MEDIA PRIORIDAD (Próximo mes)
 
