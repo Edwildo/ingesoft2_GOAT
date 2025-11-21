@@ -39,6 +39,12 @@ htmlcov/
 *.log
 logs/
 
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+
 # MongoDB
 data/
 *.db
