@@ -25,13 +25,12 @@ class Database:
             # Determinar si es una conexión Atlas (mongodb+srv://)
             is_atlas = settings.mongodb_uri.startswith("mongodb+srv://")
 
-            # Configurar cliente con ServerApi si es Atlas
             if is_atlas:
                 logger.info("Conectando a MongoDB Atlas...")
                 cls.client = AsyncIOMotorClient(
                     settings.mongodb_uri,
                     server_api=ServerApi("1"),
-                    serverSelectionTimeoutMS=5000,  # Timeout más corto para no bloquear
+                    serverSelectionTimeoutMS=5000,
                 )
             else:
                 logger.info("Conectando a MongoDB local...")
@@ -46,7 +45,7 @@ class Database:
             logger.info("Conexion a MongoDB establecida correctamente")
             
         except Exception as e:
-            logger.error(f"Error conectando a MongoDB: {e}")
+            logger.error(f"Error conectando a MongoDB: {type(e).__name__}")
             logger.warning("El servidor continuara, pero la conexion a MongoDB fallara hasta que se corrija")
 
     @classmethod

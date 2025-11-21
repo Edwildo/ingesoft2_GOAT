@@ -15,6 +15,7 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 from goat_catalog.shared.config import get_settings
+from goat_catalog.shared.utils.logging_utils import sanitize_email, should_log_debug
 from ...domain.services.email_service import EmailService
 from ...domain.value_objects.email import Email
 from ...domain.value_objects.otp_purpose import OTPPurpose
@@ -142,18 +143,15 @@ Si no solicitaste este código, ignora este mensaje.
             use_start_tls = self._settings.smtp_port == 587
             use_tls_direct = self._settings.smtp_port == 465
 
-            logger.info(
-                f"📧 Iniciando envío de email OTP a {to_email.value} "
-                f"(propósito: {purpose.value})"
-            )
-            logger.info(
-                f"   SMTP Server: {self._settings.smtp_host}:{self._settings.smtp_port}"
-            )
-            logger.info(
-                f"   Conexión: STARTTLS={use_start_tls}, TLS Directo={use_tls_direct}"
-            )
-            logger.info(f"   From: {self._settings.email_from}")
-            logger.info(f"   To: {to_email.value}")
+            sanitized_email = sanitize_email(to_email.value)
+            
+            if should_log_debug():
+                logger.debug(
+                    f"Iniciando envio de email OTP a {sanitized_email} "
+                    f"(proposito: {purpose.value})"
+                )
+                logger.debug(f"SMTP Server: {self._settings.smtp_host}:{self._settings.smtp_port}")
+                logger.debug(f"Conexion: STARTTLS={use_start_tls}, TLS Directo={use_tls_direct}")
 
             # Conectar al servidor SMTP
             # IMPORTANTE: use_tls y start_tls son mutuamente excluyentes
@@ -165,73 +163,69 @@ Si no solicitaste este código, ignora este mensaje.
             )
 
             await smtp.connect()
-            logger.info(f"Conexion SMTP establecida: {smtp.is_connected}")
+            
+            if should_log_debug():
+                logger.debug(f"Conexion SMTP establecida: {smtp.is_connected}")
 
-            # Autenticar si se proporcionan credenciales
             if self._settings.smtp_user and self._settings.smtp_password:
-                logger.debug("   Autenticando con servidor SMTP...")
+                if should_log_debug():
+                    logger.debug("Autenticando con servidor SMTP...")
                 await smtp.login(
                     self._settings.smtp_user,
                     self._settings.smtp_password,
                 )
-                logger.info(
-                    f"   ✅ Autenticación SMTP exitosa para: {self._settings.smtp_user}"
-                )
+                if should_log_debug():
+                    sanitized_user = sanitize_email(self._settings.smtp_user)
+                    logger.debug(f"Autenticacion SMTP exitosa para: {sanitized_user}")
 
-            # Enviar el email
-            logger.debug("   Enviando email...")
+            if should_log_debug():
+                logger.debug("Enviando email...")
+            
             errors, response = await smtp.send_message(message)
             
-            # Logging de respuesta SMTP
-            logger.info(f"   📬 Respuesta SMTP completa: {response}")
-            
             if errors:
-                logger.error(
-                    f"   ❌ Errores al enviar email SMTP: {errors}"
-                )
-                for recipient, error in errors.items():
-                    logger.error(f"      - {recipient}: {error}")
-                raise Exception(f"Error al enviar email: {errors}")
-            else:
-                logger.info(
-                    f"   ✅ Email enviado exitosamente sin errores"
-                )
-
-            logger.info(
-                f"✅ Email OTP enviado exitosamente a {to_email.value} "
-                f"(propósito: {purpose.value})"
-            )
+                logger.error(f"Errores al enviar email SMTP a {sanitized_email}: {len(errors)} error(es)")
+                if should_log_debug():
+                    for recipient, error in errors.items():
+                        logger.debug(f"Error para {sanitize_email(recipient)}: {str(error)[:100]}")
+                raise Exception(f"Error al enviar email: {len(errors)} error(es)")
+            
+            logger.info(f"Email OTP enviado exitosamente a {sanitized_email} (proposito: {purpose.value})")
 
         except aiosmtplib.SMTPAuthenticationError as e:
+            sanitized_email = sanitize_email(to_email.value)
             logger.error(
-                f"❌ Error de autenticación SMTP al enviar email a {to_email.value}: {e}",
-                exc_info=True,
+                f"Error de autenticacion SMTP al enviar email a {sanitized_email}",
+                exc_info=should_log_debug(),
             )
             raise
         except aiosmtplib.SMTPConnectError as e:
+            sanitized_email = sanitize_email(to_email.value)
             logger.error(
-                f"❌ Error de conexión SMTP al enviar email a {to_email.value}: {e}",
-                exc_info=True,
+                f"Error de conexion SMTP al enviar email a {sanitized_email}",
+                exc_info=should_log_debug(),
             )
             raise
         except aiosmtplib.SMTPException as e:
+            sanitized_email = sanitize_email(to_email.value)
             logger.error(
-                f"❌ Error SMTP al enviar email a {to_email.value}: {e}",
-                exc_info=True,
+                f"Error SMTP al enviar email a {sanitized_email}",
+                exc_info=should_log_debug(),
             )
             raise
         except Exception as e:
+            sanitized_email = sanitize_email(to_email.value)
             logger.error(
-                f"❌ Error inesperado al enviar email OTP a {to_email.value}: {e}",
-                exc_info=True,
+                f"Error inesperado al enviar email OTP a {sanitized_email}",
+                exc_info=should_log_debug(),
             )
             raise
         finally:
-            # Cerrar conexión SMTP
             if smtp and smtp.is_connected:
                 try:
                     await smtp.quit()
-                    logger.debug("   Conexión SMTP cerrada correctamente")
+                    if should_log_debug():
+                        logger.debug("Conexion SMTP cerrada correctamente")
                 except Exception as e:
-                    logger.warning(f"   Advertencia al cerrar conexión SMTP: {e}")
+                    logger.warning(f"Advertencia al cerrar conexion SMTP: {type(e).__name__}")
 

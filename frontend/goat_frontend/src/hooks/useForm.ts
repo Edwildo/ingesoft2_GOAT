@@ -100,7 +100,7 @@ export function useForm<T extends Record<string, unknown>>({
       try {
         await onSubmit(values);
       } catch (error) {
-        console.error('Form submission error:', error);
+        // Error manejado por el componente que usa el hook
       } finally {
         setIsSubmitting(false);
       }

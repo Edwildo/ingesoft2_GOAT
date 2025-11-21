@@ -21,6 +21,7 @@ if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
 from goat_catalog.shared.config import get_settings
+from goat_catalog.shared.utils.logging_utils import sanitize_email, should_log_debug
 from goat_catalog.shared.utils.security import verify_otp_hash
 
 logger = logging.getLogger(__name__)
@@ -61,25 +62,19 @@ class ValidateOTPUseCase:
         email = Email(request.email)
         purpose = request.purpose
 
-        logger.info(
-            f"Validando OTP para email: {email.value}, "
-            f"purpose: {purpose.value}"
-        )
+        sanitized_email = sanitize_email(email.value)
+        
+        if should_log_debug():
+            logger.debug(f"Validando OTP para email: {sanitized_email}, purpose: {purpose.value}")
 
-        # Buscar OTP en repositorio
         otp_token = await self._otp_repository.find_by_email_and_purpose(email, purpose)
 
         if not otp_token:
-            logger.warning(
-                f"OTP no encontrado para email: {email.value}, "
-                f"purpose: {purpose.value}"
-            )
+            logger.warning(f"OTP no encontrado para email: {sanitized_email}, purpose: {purpose.value}")
             raise OTPInvalidException("OTP no encontrado")
 
         if otp_token.has_reached_max_attempts(settings.otp_max_attempts):
-            logger.warning(
-                f"Maximo de intentos alcanzado para email: {email.value}"
-            )
+            logger.warning(f"Maximo de intentos alcanzado para email: {sanitized_email}")
             await self._otp_repository.delete(otp_token)
             raise OTPMaxAttemptsException(
                 f"Maximo de intentos ({settings.otp_max_attempts}) alcanzado"
@@ -89,33 +84,25 @@ class ValidateOTPUseCase:
         await self._otp_repository.save(otp_token)
 
         if otp_token.is_expired():
-            logger.warning(
-                f"OTP expirado para email: {email.value}. "
-                f"Expiracion: {otp_token.expire_at}"
-            )
+            logger.warning(f"OTP expirado para email: {sanitized_email}")
             await self._otp_repository.delete(otp_token)
             raise OTPExpiredException("OTP ha expirado")
 
-        # Verificar hash del OTP
         is_valid = verify_otp_hash(request.otp, otp_token.otp_hash.value)
 
         if not is_valid:
-            logger.warning(
-                f"OTP invalido para email: {email.value}"
-            )
+            logger.warning(f"OTP invalido para email: {sanitized_email}")
             await self._otp_repository.save(otp_token)
             raise OTPInvalidException("OTP invalido")
 
-        logger.info(
-            f"OTP valido para email: {email.value}, purpose: {purpose.value}"
-        )
+        logger.info(f"OTP valido para email: {sanitized_email}, purpose: {purpose.value}")
 
         await self._otp_repository.delete(otp_token)
 
         if purpose == OTPPurpose.EMAIL_CONFIRMATION and self._confirmed_email_repository:
             confirmed_email = ConfirmedEmail.create(email)
             await self._confirmed_email_repository.save(confirmed_email)
-            logger.info(f"Email {email.value} marcado como confirmado")
+            logger.info(f"Email {sanitized_email} marcado como confirmado")
 
         return ValidateOTPResponse(
             success=True,

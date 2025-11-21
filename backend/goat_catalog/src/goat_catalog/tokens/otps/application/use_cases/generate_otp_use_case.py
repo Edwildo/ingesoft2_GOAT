@@ -22,6 +22,7 @@ if str(src_path) not in sys.path:
 from datetime import datetime, timedelta
 
 from goat_catalog.shared.config import get_settings
+from goat_catalog.shared.utils.logging_utils import sanitize_email, should_log_debug
 from goat_catalog.shared.utils.security import hash_otp
 
 logger = logging.getLogger(__name__)
@@ -58,16 +59,13 @@ class GenerateOTPUseCase:
             try:
                 await self._email_service.send_otp_email(email, otp_code, purpose)
             except Exception as e:
+                sanitized_email = sanitize_email(email.value)
                 logger.error(
-                    f"Error al enviar email OTP a {email.value}: {e}",
-                    exc_info=True,
+                    f"Error al enviar email OTP a {sanitized_email}",
+                    exc_info=should_log_debug(),
                 )
-                # No lanzamos la excepción para no bloquear la generación del OTP
-                # El OTP ya está guardado, solo falló el envío del email
         else:
-            logger.warning(
-                "Servicio de email no configurado. OTP generado pero no enviado."
-            )
+            logger.warning("Servicio de email no configurado. OTP generado pero no enviado.")
 
     async def execute(self, request: GenerateOTPRequest) -> GenerateOTPResponse:
         """Ejecuta la generación de un nuevo OTP.

@@ -73,15 +73,12 @@ export const authService = {
    */
   verifyOTP: async (data: VerifyOtpRequest): Promise<ApiResponse<VerifyOtpResponse>> => {
     try {
-      console.log('Llamando a verifyOTP a través de Java:', { endpoint: '/api/auth/verify', data });
       const response = await apiClient.post<VerifyOtpResponse>('/api/auth/verify', data);
-      console.log('Respuesta de verifyOTP:', response.data);
       return {
         success: true,
         data: response.data,
       };
     } catch (error) {
-      console.error('Error en verifyOTP:', error);
       return {
         success: false,
         error: handleApiError(error),

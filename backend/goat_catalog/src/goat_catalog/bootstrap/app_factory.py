@@ -53,7 +53,7 @@ def create_app() -> FastAPI:
         try:
             await Database.connect()
         except Exception as e:
-            logger.error(f"Error en startup: {e}. El servidor continuará funcionando.")
+            logger.error(f"Error en startup: {type(e).__name__}. El servidor continuara funcionando.")
 
     @app.on_event("shutdown")
     async def shutdown_event() -> None:

@@ -56,9 +56,7 @@ export function useOTP(): UseOTPReturn {
     setError(null);
     
     try {
-      console.log('Verificando OTP:', { email, otp: normalizedOTP, purpose });
       const response = await authService.verifyOTP({ email, otp: normalizedOTP, purpose });
-      console.log('Respuesta del servidor:', response);
       
       if (response.success && response.data?.valid) {
         return true;
@@ -67,7 +65,6 @@ export function useOTP(): UseOTPReturn {
         return false;
       }
     } catch (err) {
-      console.error('Error al verificar OTP:', err);
       setError('Error de conexión con el servidor');
       return false;
     } finally {
