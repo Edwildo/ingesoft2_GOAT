@@ -42,15 +42,12 @@ class Database:
 
             cls.database = cls.client[settings.mongodb_database]
 
-            # Verificar conexión con timeout corto
             await cls.client.admin.command("ping")
-            logger.info("✅ Conexión a MongoDB establecida correctamente")
+            logger.info("Conexion a MongoDB establecida correctamente")
             
         except Exception as e:
-            logger.error(f"⚠️  Error conectando a MongoDB: {e}")
-            logger.warning("El servidor continuará, pero la conexión a MongoDB fallará hasta que se corrija")
-            # No lanzamos la excepción para que el servidor pueda iniciar
-            # La conexión se reintentará cuando se use el repositorio
+            logger.error(f"Error conectando a MongoDB: {e}")
+            logger.warning("El servidor continuara, pero la conexion a MongoDB fallara hasta que se corrija")
 
     @classmethod
     async def disconnect(cls) -> None:

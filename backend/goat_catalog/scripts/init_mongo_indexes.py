@@ -18,36 +18,33 @@ async def init_indexes() -> None:
     """Inicializa los índices TTL en MongoDB (local o Atlas)."""
     settings = get_settings()
 
-    print(f"📡 Conectando a MongoDB: {settings.mongodb_database}")
-    print(f"🔗 URI: {settings.mongodb_uri[:50]}...\n")
+    print(f"Conectando a MongoDB: {settings.mongodb_database}")
+    print(f"URI: {settings.mongodb_uri[:50]}...\n")
 
-    # Determinar si es una conexión Atlas (mongodb+srv://)
     is_atlas = settings.mongodb_uri.startswith("mongodb+srv://")
 
-    # Configurar cliente con ServerApi si es Atlas
     try:
         if is_atlas:
-            print("🌐 Detectado MongoDB Atlas")
+            print("Detectado MongoDB Atlas")
             client = AsyncIOMotorClient(
                 settings.mongodb_uri,
                 server_api=ServerApi("1"),
                 serverSelectionTimeoutMS=10000, 
             )
         else:
-            print("🏠 Detectado MongoDB local")
+            print("Detectado MongoDB local")
             client = AsyncIOMotorClient(
                 settings.mongodb_uri,
                 serverSelectionTimeoutMS=5000,
             )
 
-        # Verificar conexión
         await client.admin.command("ping")
-        print("✅ Conexión establecida\n")
+        print("Conexión establecida\n")
 
         database = client[settings.mongodb_database]
         collection = database["otps"]
 
-        print("📦 Inicializando colección 'otps'...\n")
+        print("Inicializando colección 'otps'...\n")
 
         # Crear índice TTL en expire_at (los documentos se eliminarán automáticamente)
         try:
@@ -91,36 +88,6 @@ async def init_indexes() -> None:
                 raise
 
         print("Todos los índices fueron inicializados correctamente")
-        
-        # Mostrar lista de índices creados
-        indexes = await collection.list_indexes().to_list(length=None)
-        print(f"\n📋 Índices en la colección 'otps':")
-        for idx in indexes:
-            print(f"   - {idx.get('name', 'N/A')}")
-
-        # Inicializar colección confirmed_emails
-        confirmed_collection = database["confirmed_emails"]
-        print("Inicializando colección 'confirmed_emails'...\n")
-
-        # Crear índice único en email
-        try:
-            await confirmed_collection.create_index(
-                "email",
-                unique=True,
-                name="email_unique",
-            )
-            print("Índice único creado en 'email' para la colección 'confirmed_emails'")
-        except OperationFailure as e:
-            if "already exists" in str(e).lower() or "duplicate key" in str(e).lower():
-                print("Índice único 'email' ya existe en 'confirmed_emails'")
-            else:
-                raise
-
-        # Mostrar lista de índices de confirmed_emails
-        confirmed_indexes = await confirmed_collection.list_indexes().to_list(length=None)
-        print(f"\n📋 Índices en la colección 'confirmed_emails':")
-        for idx in confirmed_indexes:
-            print(f"   - {idx.get('name', 'N/A')}")
 
     except OperationFailure as e:
         error_msg = str(e)

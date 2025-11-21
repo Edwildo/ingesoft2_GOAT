@@ -164,10 +164,8 @@ Si no solicitaste este código, ignora este mensaje.
                 start_tls=use_start_tls,  # Solo para puerto 587
             )
 
-            # Conectar
-            logger.debug("   Conectando al servidor SMTP...")
             await smtp.connect()
-            logger.info(f"   ✅ Conexión SMTP establecida: {smtp.is_connected}")
+            logger.info(f"Conexion SMTP establecida: {smtp.is_connected}")
 
             # Autenticar si se proporcionan credenciales
             if self._settings.smtp_user and self._settings.smtp_password:
