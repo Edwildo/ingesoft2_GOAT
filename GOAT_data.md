@@ -1,639 +1,517 @@
-¡Quedó claro! Adoptamos **MongoDB con TTL** para **OTPs y password reset tokens** (efímeros, acceso rápido), y mantenemos **PostgreSQL** para identidad, roles/menú y listings. Abajo te dejo los **entregables en Markdown** listos para copiar/pegar:
+# Workshop 3 – Full Stack Implementation (GOAT Project)
+
+This folder contains the implementation for **Software Engineering II – Workshop 3**:
+
+- Relational database (PostgreSQL)
+- Java backend (Identity, Navigation, Listing, Authentication)
+- Python backend (OTP & Catalog support)
+- Web frontend (React)
+- Basic unit tests for Java and Python (optional for running the system)
 
 ---
 
-# 📘 0. Decisiones clave (resumen)
+## 1. Repository Layout
 
-* **OTPs → Mongo + TTL**: efímeros, alta concurrencia, borrado automático; se guarda **hash** del OTP (no el código plano).
-* **Password reset tokens → Mongo + TTL**: *single-use* por diseño (si expiró o no existe, es inválido).
-* **Email confirmation tokens → Mongo + TTL** (coherencia con tu preferencia; al confirmar, se actualiza `email_confirmed` en PG).
-* **Catálogo y taxonomías (Shop público) → Mongo**: flexibles, media S3.
-* **Identidad/RBAC/Menú dinámico/Listings → Postgres**: integridad, relaciones y reglas de edición/publicación.
+```text
+Workshop-3/
+  README.md
 
----
+  database/
+    README.md          # schema description and how to apply it
 
-# 📙 1. Documentación general de esquemas (MD)
+  java-backend/
+    README.md          # how to configure and run the Java service
+    AUTH_INTEGRATION.md# frontend ↔ Java auth & OTP integration guide
 
-## 1.1 PostgreSQL (schema‐first)
+  python-backend/
+    README.md          # how to configure and run the Python service
 
-**Schemas**:
+  web-frontend/
+    README.md          # how to run the React app and connect it to Java
+2. Prerequisites
+To run the full system locally you need:
 
-* `identity`: usuarios, roles, asignaciones.
-* `navigation`: menús (públicos/privados) y relación con roles.
-* `listing`: publicaciones del seller (precio fijo, tallas fijas, no editable si `PUBLISHED` → archivar y crear nueva).
+PostgreSQL (local or Docker)
 
-**Entidades principales**
+MongoDB (local or Docker)
 
-* `identity.users`
+Java 17+ (for Spring Boot backend)
 
-  * `id (uuid PK)` · `email (unique)` · `password_hash` · `email_confirmed` · `is_active` · `created_at`.
-  * **Uso:** login seller/buyer, relación con roles.
+Python 3.10+ (for OTP & catalog backend)
 
-* `identity.roles` & `identity.users_roles`
+Node.js 18+ and npm (for React frontend)
 
-  * **RBAC**: SUPER_ADMIN, SELLER, BUYER, SUPPORT, CLIENT.
-  * **Uso:** controlar acceso y construir menú dinámico.
+Optional: Poetry (for Python dependency management)
 
-* `navigation.menus` & `navigation.roles_menus`
+3. Services and Ports
+By convention, the services run on:
 
-  * Campos: `name`, `route`, `icon`, `menu_order`, `parent_id`, `is_public`.
-  * **Uso:** árbol de navegación (público y por rol).
+PostgreSQL: localhost:5432
 
-* `listing.listings`
+MongoDB: localhost:27017
 
-  * `seller_id` (FK a `identity.users`) · `sneaker_sku` (ref a Mongo) · `size` · `condition` · `gender` · `color` · `price` · `status` (`DRAFT|PUBLISHED|ARCHIVED`) · `cover_image` (S3).
-  * **Regla:** si está `PUBLISHED`, información vital **no se edita** → `ARCHIVED` + nuevo.
+Java backend: http://localhost:8081
 
----
+Python backend: http://localhost:8082
 
-## 1.2 MongoDB (document-first)
+React frontend: http://localhost:5173 (Vite default)
 
-**Bases sugeridas**:
+4. How to Run Everything (Quick Start)
+4.1 Step 1 – Start PostgreSQL and MongoDB
+You can use local installations or Docker. Example with Docker:
 
-* `auth`: `otps`, `password_resets`, `email_confirm` (todo con **TTL**).
-* `catalog`: `sneakers`, `categories`, `collections`, `brands`.
+bash
+Copiar código
+# PostgreSQL
+docker run --name goat-postgres -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=goat \
+  -p 5432:5432 -d postgres:16
 
-**Colecciones clave**
+# MongoDB
+docker run --name goat-mongo -p 27017:27017 -d mongo:7
+Then, apply the SQL schema as described in database/README.md.
 
-* `auth.otps` (OTP efímero)
+4.2 Step 2 – Run the Java Backend (port 8081)
+Go to the java-backend folder and follow the instructions in:
 
-  * Campos: `email`, `purpose (REGISTER|LOGIN|EMAIL_VERIFY)`, `otpHash`, `attempts`, `createdAt`, `expireAt`.
-  * Índices: TTL en `expireAt`, `{email, purpose}`.
+java-backend/README.md
 
-* `auth.password_resets` (token de reseteo efímero)
+Typical flow:
 
-  * Campos: `userId`, `tokenHash` (no token plano), `createdAt`, `expireAt`, `used (bool)` opcional.
-  * Índices: TTL en `expireAt`, `tokenHash` único.
+bash
+Copiar código
+cd Workshop-3/java-backend
+# If you use Maven:
+mvn spring-boot:run
 
-* `auth.email_confirm` (enlace de confirmación efímero)
+# Or if you use Gradle:
+./gradlew bootRun
+The Java backend must be reachable at:
 
-  * Campos: `userId`, `tokenHash`, `createdAt`, `expireAt`, `used`.
-  * Índices: TTL en `expireAt`, `tokenHash` único.
+text
+Copiar código
+http://localhost:8081
+4.3 Step 3 – Run the Python Backend (port 8082)
+Go to the python-backend folder and follow:
 
-* `catalog.sneakers` (catálogo canónico)
+python-backend/README.md
 
-  * Campos: `sku (unique)`, `brand`, `model`, `colorway?`, `gender`, `year?`, `sizes[] (fijo)`, `media{images[], cover}`, `attributes{}` flexible, `updatedAt`.
-  * Índices: `sku` único, `{brand, model}`, `gender`.
+Typical flow (with Poetry, for example):
 
-* `catalog.categories` · `catalog.collections` · `catalog.brands`
+bash
+Copiar código
+cd Workshop-3/python-backend
+poetry install
+poetry run uvicorn app.main:app --reload --port 8082
+The Python service must be reachable at:
 
-  * Para **Shop público** (categorías, colecciones, marcas) con **slugs** únicos y flags `active`.
+text
+Copiar código
+http://localhost:8082
+Remember: the frontend never calls Python directly. Only Java ↔ Python.
 
----
+4.4 Step 4 – Run the React Frontend
+Go to the web-frontend folder and follow:
 
-# 🐘 2. SQL listo para DataGrip (PostgreSQL)
+web-frontend/README.md
 
-> Pega esto tal cual en DataGrip. Crea extensiones, schemas y tablas con índices.
+Basic flow:
 
-```sql
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+bash
+Copiar código
+cd Workshop-3/web-frontend
+npm install
+npm run dev
+By default, Vite will run at:
 
--- =========== identity ===========
-CREATE SCHEMA IF NOT EXISTS identity;
-SET search_path = identity, public;
+text
+Copiar código
+http://localhost:5173
+The frontend is configured to call the Java backend at:
 
-CREATE TABLE IF NOT EXISTS users (
-  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  email           varchar(255) NOT NULL UNIQUE,
-  password_hash   text NOT NULL,
-  email_confirmed boolean NOT NULL DEFAULT false,
-  is_active       boolean NOT NULL DEFAULT true,
-  created_at      timestamptz NOT NULL DEFAULT now()
-);
+text
+Copiar código
+http://localhost:8081
+(Using an environment variable such as VITE_API_BASE_URL.)
 
-CREATE TABLE IF NOT EXISTS roles (
-  id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  code  varchar(40) UNIQUE NOT NULL,   -- SUPER_ADMIN, SELLER, BUYER, SUPPORT, CLIENT
-  name  varchar(80) NOT NULL
-);
+5. How Components Talk to Each Other
+Frontend React → Java backend (8081)
+All REST API calls (auth, listings, menus) go here.
 
-CREATE TABLE IF NOT EXISTS users_roles (
-  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  role_id uuid NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
-  PRIMARY KEY (user_id, role_id)
-);
+Java backend (8081) → Python backend (8082)
+For OTP generation and verification.
 
--- =========== navigation ===========
-CREATE SCHEMA IF NOT EXISTS navigation;
-SET search_path = navigation, public, identity;
+Java backend → PostgreSQL
+Identity, navigation and listings are stored here.
 
-CREATE TABLE IF NOT EXISTS menus (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  parent_id   uuid NULL REFERENCES menus(id) ON DELETE CASCADE,
-  name        varchar(120) NOT NULL,
-  route       varchar(160) NOT NULL,
-  icon        varchar(80)  NULL,
-  menu_order  int NOT NULL DEFAULT 0,
-  is_public   boolean NOT NULL DEFAULT false,
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  updated_at  timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_menus_parent ON menus(parent_id);
-CREATE INDEX IF NOT EXISTS idx_menus_public ON menus(is_public);
+Python backend → MongoDB
+OTPs (TTL) and catalog-related documents are stored here.
 
-CREATE TABLE IF NOT EXISTS roles_menus (
-  role_id uuid NOT NULL REFERENCES identity.roles(id) ON DELETE CASCADE,
-  menu_id uuid NOT NULL REFERENCES navigation.menus(id) ON DELETE CASCADE,
-  PRIMARY KEY (role_id, menu_id)
-);
+6. Additional Documents
+database/README.md – explains the SQL schema and how to apply it.
 
--- =========== listing ===========
-CREATE SCHEMA IF NOT EXISTS listing;
-SET search_path = listing, public, identity;
+java-backend/README.md – explains endpoints, configuration and run instructions.
 
-DO $$ BEGIN
-  CREATE TYPE listing_status AS ENUM ('DRAFT','PUBLISHED','ARCHIVED');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+java-backend/AUTH_INTEGRATION.md – detailed frontend ↔ Java auth/OTP integration.
 
-CREATE TABLE IF NOT EXISTS listings (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  seller_id     uuid NOT NULL REFERENCES identity.users(id),
-  sneaker_sku   varchar(80) NOT NULL,        -- referencia a Mongo
-  size          varchar(16) NOT NULL,        -- catálogo fijo de tallas
-  condition     varchar(24) NOT NULL,        -- NEW, LIKE_NEW, USED_A...
-  gender        varchar(16) NOT NULL,        -- MEN, WOMEN, GS, UNISEX
-  brand         varchar(60) NOT NULL,        -- redundante para filtros rápidos
-  color         varchar(40) NOT NULL,
-  price         numeric(12,2) NOT NULL,      -- precio fijo
-  status        listing_status NOT NULL DEFAULT 'DRAFT',
-  cover_image   varchar(256) NULL,           -- S3 URL
-  created_at    timestamptz NOT NULL DEFAULT now()
-);
+python-backend/README.md – explains the internal OTP API and how to run it.
 
-CREATE INDEX IF NOT EXISTS idx_listings_seller   ON listings(seller_id);
-CREATE INDEX IF NOT EXISTS idx_listings_status   ON listings(status);
-CREATE INDEX IF NOT EXISTS idx_listings_browser  ON listings(sneaker_sku, size, status);
-CREATE INDEX IF NOT EXISTS idx_listings_filters  ON listings(gender, brand, color);
-```
+web-frontend/README.md – explains how to configure and run the React app.
 
-**Notas de diseño**
+All documents are in English as required by the course.
 
-* Redundamos `brand` en `listings` para filtrar sin “join” al catálogo (que está en Mongo).
-* La **regla de no edición en `PUBLISHED`** se implementa en el servicio: si cambian campos vitales, se **archiva** y se crea una **nueva** fila.
+yaml
+Copiar código
 
 ---
 
-# 🍃 3. MongoDB (validators + índices) — `mongosh`
+## 2️⃣ `Workshop-3/java-backend/README.md` – cómo correr Java
 
-> Pega por secciones en `mongosh`.
+```md
+# Java Backend – Identity, Navigation & Listing Service
 
-### 3.1 `auth` — OTPs y tokens (TTL)
+## 1. Overview
 
-```javascript
-use auth;
+This backend is responsible for:
 
-/* OTPs efímeros */
-db.createCollection("otps", {
-  validator: {$jsonSchema:{
-    bsonType:"object",
-    required:["email","purpose","otpHash","createdAt","expireAt"],
-    properties:{
-      email:{bsonType:"string"},
-      purpose:{enum:["REGISTER","LOGIN","EMAIL_VERIFY"]},
-      otpHash:{bsonType:"string"},
-      attempts:{bsonType:"int"},
-      createdAt:{bsonType:"date"},
-      expireAt:{bsonType:"date"}
-    }
-  }}
-});
-db.otps.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
-db.otps.createIndex({ email: 1, purpose: 1 });
+- **Identity**: users, roles, RBAC.
+- **Navigation**: dynamic menus (public + role-based).
+- **Listing**: sneaker listings created by sellers.
+- **Authentication & OTP orchestration**: communicates with the Python service.
 
-/* Password reset tokens efímeros (single-use por TTL + borrado al usar) */
-db.createCollection("password_resets", {
-  validator: {$jsonSchema:{
-    bsonType:"object",
-    required:["userId","tokenHash","createdAt","expireAt"],
-    properties:{
-      userId:{bsonType:"string"},       // UUID PG en string
-      tokenHash:{bsonType:"string"},    // hash opaco
-      used:{bsonType:["bool","null"]},
-      createdAt:{bsonType:"date"},
-      expireAt:{bsonType:"date"}
-    }
-  }}
-});
-db.password_resets.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
-db.password_resets.createIndex({ tokenHash: 1 }, { unique: true });
+Base URL:
 
-/* Email confirm tokens efímeros */
-db.createCollection("email_confirm", {
-  validator: {$jsonSchema:{
-    bsonType:"object",
-    required:["userId","tokenHash","createdAt","expireAt"],
-    properties:{
-      userId:{bsonType:"string"},
-      tokenHash:{bsonType:"string"},
-      used:{bsonType:["bool","null"]},
-      createdAt:{bsonType:"date"},
-      expireAt:{bsonType:"date"}
-    }
-  }}
-});
-db.email_confirm.createIndex({ expireAt: 1 }, { expireAfterSeconds: 0 });
-db.email_confirm.createIndex({ tokenHash: 1 }, { unique: true });
-```
+```text
+http://localhost:8081
+All frontend calls go to this service.
 
-### 3.2 `catalog` — catálogo y taxonomías
+2. Prerequisites
+Java 17 or newer.
 
-```javascript
-use catalog;
+Maven or Gradle.
 
-db.createCollection("sneakers", {
-  validator: {$jsonSchema:{
-    bsonType:"object",
-    required:["sku","brand","model","sizes","media","updatedAt"],
-    properties:{
-      sku:{bsonType:"string"},
-      brand:{bsonType:"string"},
-      model:{bsonType:"string"},
-      colorway:{bsonType:["string","null"]},
-      gender:{enum:["MEN","WOMEN","GS","UNISEX", null]},
-      year:{bsonType:["int","null"]},
-      sizes:{bsonType:"array", items:{bsonType:"string"}, minItems:1},
-      media:{bsonType:"object", required:["images"],
-        properties:{ images:{bsonType:"array", items:{bsonType:"string"}}, cover:{bsonType:["string","null"]} }
-      },
-      attributes:{bsonType:["object","null"]},
-      updatedAt:{bsonType:"date"}
-    }
-  }}
-});
-db.sneakers.createIndex({ sku: 1 }, { unique: true });
-db.sneakers.createIndex({ brand: 1, model: 1 });
-db.sneakers.createIndex({ gender: 1 });
+Access to a PostgreSQL instance with the identity, navigation and listing schemas created (see ../database/README.md).
 
-db.createCollection("categories", {
-  validator: {$jsonSchema:{
-    bsonType:"object",
-    required:["slug","name","level","active"],
-    properties:{
-      slug:{bsonType:"string"},
-      name:{bsonType:"string"},
-      parent:{bsonType:["string","null"]}, // slug padre
-      level:{bsonType:"int"},              // 0=raíz
-      active:{bsonType:"bool"}
-    }
-  }}
-});
-db.categories.createIndex({ slug: 1 }, { unique: true });
-db.categories.createIndex({ parent: 1, level: 1 });
+3. Configuration
+Typical application.yml example:
 
-db.createCollection("collections", {
-  validator: {$jsonSchema:{
-    bsonType:"object",
-    required:["slug","name","active"],
-    properties:{
-      slug:{bsonType:"string"},
-      name:{bsonType:"string"},
-      active:{bsonType:"bool"},
-      sortOrder:{bsonType:["int","null"]}
-    }
-  }}
-});
-db.collections.createIndex({ slug: 1 }, { unique: true });
-db.collections.createIndex({ active: 1, sortOrder: 1 });
+yaml
+Copiar código
+server:
+  port: 8081
 
-db.createCollection("brands", {
-  validator: {$jsonSchema:{
-    bsonType:"object",
-    required:["slug","name","active"],
-    properties:{
-      slug:{bsonType:"string"},
-      name:{bsonType:"string"},
-      active:{bsonType:"bool"}
-    }
-  }}
-});
-db.brands.createIndex({ slug: 1 }, { unique: true });
-db.brands.createIndex({ active: 1 });
-```
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/goat
+    username: goat_app_user
+    password: goat_password
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+python:
+  otp:
+    base-url: http://localhost:8082
+Adjust the URL, username and password to match your local PostgreSQL configuration.
+
+4. How to Run the Service
+From the java-backend folder:
+
+4.1 Using Maven
+bash
+Copiar código
+mvn clean install
+mvn spring-boot:run
+4.2 Using Gradle
+bash
+Copiar código
+./gradlew clean build
+./gradlew bootRun
+If everything is correct, the service will be available at:
+
+text
+Copiar código
+http://localhost:8081
+Useful health check:
+
+bash
+Copiar código
+curl http://localhost:8081/actuator/health
+(if actuator is enabled).
+
+5. Main REST Endpoints
+Detailed documentation is in AUTH_INTEGRATION.md. In summary:
+
+Authentication & OTP
+POST /api/auth/register
+
+POST /api/auth/login
+
+POST /api/auth/otp
+
+POST /api/auth/verify
+
+GET /api/auth/confirm-email?email=...
+
+Navigation
+GET /api/navigation/menus
+Returns public + role-based menus for the current user.
+
+Listings (example design)
+GET /api/listings – public published listings for the shop.
+
+GET /api/listings/{id} – listing details.
+
+GET /api/listings/mine – listings for the authenticated seller.
+
+POST /api/listings – create draft listing.
+
+PUT /api/listings/{id} – update draft listing only.
+
+PUT /api/listings/{id}/publish – change status to PUBLISHED.
+
+PUT /api/listings/{id}/archive – change status to ARCHIVED.
+
+6. Running With the Full Stack
+To see the system working end-to-end:
+
+Start PostgreSQL and apply the SQL schema.
+
+Start MongoDB.
+
+Start the Python backend (OTP) at http://localhost:8082.
+
+Start this Java backend at http://localhost:8081.
+
+Start the React frontend and open it in your browser.
+
+The frontend will:
+
+Call this service at http://localhost:8081 for all operations.
+
+Trigger OTP flows that are internally delegated to the Python service.
+
+yaml
+Copiar código
 
 ---
 
-# 🐍 4. Mongo + Python (esquemas y repos) — FastAPI + Motor + Pydantic
+## 3️⃣ `Workshop-3/python-backend/README.md` – cómo correr Python
 
-> Modelos Pydantic (tipado), repos con **Motor** y creación de **índices/validadores**:
+```md
+# Python Backend – OTP & Catalog Service
 
-```python
-# app/mongo/models.py
-from pydantic import BaseModel, Field, EmailStr
-from typing import List, Optional, Literal
-from datetime import datetime
+## 1. Overview
 
-# --- AUTH ---
-class OTPDoc(BaseModel):
-    email: EmailStr
-    purpose: Literal["REGISTER","LOGIN","EMAIL_VERIFY"]
-    otpHash: str
-    attempts: int = 0
-    createdAt: datetime = Field(default_factory=datetime.utcnow)
-    expireAt: datetime
+This service provides:
 
-class PasswordResetDoc(BaseModel):
-    userId: str    # UUID de PG
-    tokenHash: str
-    used: bool = False
-    createdAt: datetime = Field(default_factory=datetime.utcnow)
-    expireAt: datetime
+- **OTP management with TTL in MongoDB**:
+  - Purposes: `REGISTER`, `LOGIN`, `EMAIL_CONFIRMATION`, `RESET_PASSWORD`.
+- Optional **catalog support** (canonical sneakers, brands, categories).
 
-class EmailConfirmDoc(BaseModel):
-    userId: str
-    tokenHash: str
-    used: bool = False
-    createdAt: datetime = Field(default_factory=datetime.utcnow)
-    expireAt: datetime
+The frontend does **not** call this service directly.  
+Only the Java backend uses it internally.
 
-# --- CATALOG ---
-class Media(BaseModel):
-    images: List[str]
-    cover: Optional[str] = None
+Base URL (for Java):
 
-class SneakerDoc(BaseModel):
-    sku: str
-    brand: str
-    model: str
-    colorway: Optional[str] = None
-    gender: Optional[Literal["MEN","WOMEN","GS","UNISEX"]] = None
-    year: Optional[int] = None
-    sizes: List[str]
-    media: Media
-    attributes: Optional[dict] = None
-    updatedAt: datetime = Field(default_factory=datetime.utcnow)
-```
+```text
+http://localhost:8082
+2. Prerequisites
+Python 3.10 or newer.
 
-```python
-# app/mongo/repo.py
-from motor.motor_asyncio import AsyncIOMotorClient
-from datetime import timedelta, datetime
-from .models import OTPDoc, PasswordResetDoc, EmailConfirmDoc, SneakerDoc
-import hashlib
+MongoDB running at mongodb://localhost:27017 (or another URI).
 
-def hash_token(raw: str, pepper: str) -> str:
-    return hashlib.sha256((raw + pepper).encode()).hexdigest()
+One of:
 
-class MongoCtx:
-    def __init__(self, uri: str):
-        self.client = AsyncIOMotorClient(uri)
-        self.auth = self.client["auth"]
-        self.catalog = self.client["catalog"]
+Poetry (recommended), or
 
-    async def ensure_indexes(self):
-        # TTL
-        await self.auth.otps.create_index("expireAt", expireAfterSeconds=0)
-        await self.auth.otps.create_index([("email",1),("purpose",1)])
+pip + virtual environment.
 
-        await self.auth.password_resets.create_index("expireAt", expireAfterSeconds=0)
-        await self.auth.password_resets.create_index("tokenHash", unique=True)
+3. Installation
+From the python-backend folder:
 
-        await self.auth.email_confirm.create_index("expireAt", expireAfterSeconds=0)
-        await self.auth.email_confirm.create_index("tokenHash", unique=True)
+3.1 Using Poetry (recommended)
+bash
+Copiar código
+poetry install
+3.2 Using pip + venv (alternative)
+bash
+Copiar código
+python -m venv .venv
+source .venv/Scripts/activate  # Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+4. Configuration
+Typical environment variables:
 
-        await self.catalog.sneakers.create_index("sku", unique=True)
-        await self.catalog.sneakers.create_index([("brand",1),("model",1)])
-        await self.catalog.sneakers.create_index("gender")
+bash
+Copiar código
+export MONGODB_URI="mongodb://localhost:27017/goat"
+export OTP_EXPIRE_MINUTES=5
+export SERVICE_PORT=8082
+On Windows PowerShell:
 
-    # --- OTP flows ---
-    async def create_otp(self, email: str, purpose: str, otp_plain: str, ttl_seconds: int, pepper: str):
-        doc = OTPDoc(
-            email=email,
-            purpose=purpose,
-            otpHash=hash_token(otp_plain, pepper),
-            expireAt=datetime.utcnow() + timedelta(seconds=ttl_seconds)
-        ).model_dump()
-        await self.auth.otps.insert_one(doc)
+powershell
+Copiar código
+$env:MONGODB_URI="mongodb://localhost:27017/goat"
+$env:OTP_EXPIRE_MINUTES="5"
+$env:SERVICE_PORT="8082"
+5. How to Run the Service
+Assuming a FastAPI application with app/main.py and app as the package:
 
-    async def verify_otp(self, email: str, purpose: str, otp_plain: str, pepper: str) -> bool:
-        hashed = hash_token(otp_plain, pepper)
-        doc = await self.auth.otps.find_one({"email": email, "purpose": purpose, "otpHash": hashed})
-        if not doc: 
-            return False
-        # opcional: delete-on-use
-        await self.auth.otps.delete_one({"_id": doc["_id"]})
-        return True
+5.1 With Poetry
+bash
+Copiar código
+poetry run uvicorn app.main:app --reload --port 8082
+5.2 With plain Python
+bash
+Copiar código
+uvicorn app.main:app --reload --port 8082
+The service will be available at:
 
-    # --- Password reset ---
-    async def create_reset(self, user_id: str, token_plain: str, ttl_seconds: int, pepper: str):
-        doc = PasswordResetDoc(
-            userId=user_id,
-            tokenHash=hash_token(token_plain, pepper),
-            expireAt=datetime.utcnow() + timedelta(seconds=ttl_seconds)
-        ).model_dump()
-        await self.auth.password_resets.insert_one(doc)
+text
+Copiar código
+http://localhost:8082
+6. Internal Endpoints (for Java)
+Example design:
 
-    async def consume_reset(self, token_plain: str, pepper: str) -> str | None:
-        hashed = hash_token(token_plain, pepper)
-        doc = await self.auth.password_resets.find_one({"tokenHash": hashed})
-        if not doc:
-            return None
-        await self.auth.password_resets.delete_one({"_id": doc["_id"]})
-        return doc["userId"]
-```
+6.1 Create OTP
+POST /internal/otp
+
+json
+Copiar código
+{
+  "email": "user@example.com",
+  "purpose": "EMAIL_CONFIRMATION"
+}
+6.2 Verify OTP
+POST /internal/otp/verify
+
+json
+Copiar código
+{
+  "email": "user@example.com",
+  "otp": "123456",
+  "purpose": "EMAIL_CONFIRMATION"
+}
+Responses are consumed by the Java backend, which then updates the relational database.
+
+7. Running With the Full Stack
+Start MongoDB.
+
+Run this Python service on port 8082.
+
+Configure the Java backend so that python.otp.base-url = http://localhost:8082.
+
+Start the Java backend and then the React frontend.
+
+The complete registration + OTP flow will use this service transparently.
+
+yaml
+Copiar código
 
 ---
 
-# ☕ 5. Java (Spring Boot) — Postgres (JPA) + Mongo (Spring Data)
+## 4️⃣ `Workshop-3/web-frontend/README.md` – cómo correr el frontend React (`npm run dev`)
 
-## 5.1 Postgres — entidades JPA (RBAC, Menú, Listings)
+```md
+# Web Frontend – React (Vite) for GOAT Project
 
-```java
-// identity/User.java
-@Entity @Table(name="users", schema="identity")
-public class User {
-  @Id @Column(columnDefinition="uuid") private UUID id;
-  @Column(unique=true, nullable=false) private String email;
-  @Column(nullable=false) private String passwordHash;
-  private boolean emailConfirmed;
-  private boolean isActive = true;
-  @Column(nullable=false) private Instant createdAt = Instant.now();
-}
-```
+## 1. Overview
 
-```java
-// identity/Role.java
-@Entity @Table(name="roles", schema="identity")
-public class Role {
-  @Id @Column(columnDefinition="uuid") private UUID id;
-  @Column(unique=true, nullable=false) private String code; // SELLER, BUYER...
-  @Column(nullable=false) private String name;
-}
-```
+This is a React-based frontend (using Vite) that:
 
-```java
-// identity/UserRole.java
-@Entity @Table(name="users_roles", schema="identity")
-@IdClass(UserRoleId.class)
-public class UserRole {
-  @Id @ManyToOne @JoinColumn(name="user_id") private User user;
-  @Id @ManyToOne @JoinColumn(name="role_id") private Role role;
-}
-```
+- Allows users to **register** and confirm their email using OTP.
+- Allows users to **log in**.
+- Displays a **shop page** with published listings.
+- Builds the navigation menu from the Java backend responses.
 
-```java
-// navigation/Menu.java
-@Entity @Table(name="menus", schema="navigation")
-public class Menu {
-  @Id @Column(columnDefinition="uuid") private UUID id;
-  private String name;
-  private String route;
-  private String icon;
-  private Integer menuOrder;
-  private Boolean isPublic;
-  @ManyToOne @JoinColumn(name="parent_id") private Menu parent;
-  private Instant createdAt;
-  private Instant updatedAt;
-}
-```
+It communicates **only** with the Java backend:
 
-```java
-// navigation/RoleMenu.java
-@Entity @Table(name="roles_menus", schema="navigation")
-@IdClass(RoleMenuId.class)
-public class RoleMenu {
-  @Id @ManyToOne @JoinColumn(name="role_id") private Role role;
-  @Id @ManyToOne @JoinColumn(name="menu_id") private Menu menu;
-}
-```
+```text
+Java backend: http://localhost:8081
+2. Prerequisites
+Node.js 18+
 
-```java
-// listing/Listing.java
-@Entity @Table(name="listings", schema="listing")
-public class Listing {
-  @Id @Column(columnDefinition="uuid") private UUID id;
-  @ManyToOne @JoinColumn(name="seller_id", nullable=false) private User seller;
-  @Column(nullable=false) private String sneakerSku; // ref Mongo
-  @Column(nullable=false) private String size;
-  @Column(nullable=false) private String condition;
-  @Column(nullable=false) private String gender;
-  @Column(nullable=false) private String brand;
-  @Column(nullable=false) private String color;
-  @Column(nullable=false) private BigDecimal price;
-  @Enumerated(EnumType.STRING) @Column(nullable=false) private ListingStatus status;
-  private String coverImage;
-  private Instant createdAt;
-}
-```
+npm (comes with Node.js)
 
-**Repos (ejemplos)**
+3. Installation
+From the web-frontend folder:
 
-```java
-public interface UserRepo extends JpaRepository<User, UUID> {
-  Optional<User> findByEmail(String email);
-}
+bash
+Copiar código
+npm install
+This installs all project dependencies.
 
-public interface MenuRepo extends JpaRepository<Menu, UUID> {
-  List<Menu> findByIsPublicTrueOrderByMenuOrderAsc();
-}
-```
+4. Configuration – API Base URL
+The frontend needs to know where the Java backend is running.
+We use an environment variable, for example with Vite:
 
-## 5.2 Mongo — documentos y TTL (Spring Data Mongo)
+Create a file .env.local (or .env) in web-frontend:
 
-```java
-// auth/OtpDoc.java
-@Document("otps")
-@CompoundIndexes({
-  @CompoundIndex(name="email_purpose_idx", def="{ 'email': 1, 'purpose': 1 }")
-})
-public class OtpDoc {
-  @Id private String id;
-  private String email;
-  private String purpose;     // REGISTER | LOGIN | EMAIL_VERIFY
-  private String otpHash;
-  private Integer attempts = 0;
-  private Date createdAt = new Date();
-  @Indexed(name="ttl_expire_idx", expireAfterSeconds=0)
-  private Date expireAt;
-}
-```
+env
+Copiar código
+VITE_API_BASE_URL=http://localhost:8081
+In your React code you can then use:
 
-```java
-// auth/PasswordResetDoc.java
-@Document("password_resets")
-public class PasswordResetDoc {
-  @Id private String id;
-  private String userId;  // UUID PG
-  @Indexed(unique = true) private String tokenHash;
-  private Boolean used = false;
-  private Date createdAt = new Date();
-  @Indexed(name="ttl_reset_idx", expireAfterSeconds=0)
-  private Date expireAt;
-}
-```
+ts
+Copiar código
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+All calls should use this base URL, for example:
 
-```java
-// auth/EmailConfirmDoc.java
-@Document("email_confirm")
-public class EmailConfirmDoc {
-  @Id private String id;
-  private String userId;
-  @Indexed(unique = true) private String tokenHash;
-  private Boolean used = false;
-  private Date createdAt = new Date();
-  @Indexed(name="ttl_confirm_idx", expireAfterSeconds=0)
-  private Date expireAt;
-}
-```
+ts
+Copiar código
+fetch(`${API_BASE_URL}/api/auth/login`, { ... });
+5. How to Run the Frontend
+From the web-frontend folder:
 
-```java
-// catalog/SneakerDoc.java
-@Document("sneakers")
-@CompoundIndexes({
-  @CompoundIndex(name="brand_model_idx", def="{ 'brand': 1, 'model': 1 }")
-})
-public class SneakerDoc {
-  @Id private String id;       // opcional usar sku como _id
-  @Indexed(unique = true) private String sku;
-  private String brand;
-  private String model;
-  private String colorway;
-  private String gender;       // MEN, WOMEN, GS, UNISEX
-  private Integer year;
-  private List<String> sizes;  // catálogo fijo
-  private Map<String,Object> media;  // images[], cover
-  private Map<String,Object> attributes;
-  private Date updatedAt = new Date();
-}
-```
+bash
+Copiar código
+npm run dev
+Vite will start a development server, usually at:
 
-**Repos Mongo (ejemplos)**
+text
+Copiar código
+http://localhost:5173
+Open this URL in your browser.
 
-```java
-public interface OtpRepo extends MongoRepository<OtpDoc, String> {
-  Optional<OtpDoc> findByEmailAndPurposeAndOtpHash(String email, String purpose, String otpHash);
-}
+Make sure the Java backend (http://localhost:8081) is already running, otherwise the API calls will fail.
 
-public interface SneakerRepo extends MongoRepository<SneakerDoc, String> {
-  Optional<SneakerDoc> findBySku(String sku);
-  List<SneakerDoc> findByBrandAndModel(String brand, String model);
-}
-```
+6. Main Flows
+6.1 Registration + Email Confirmation
+POST /api/auth/register
 
----
+POST /api/auth/otp with purpose = "EMAIL_CONFIRMATION"
 
-# 🧩 6. Queries/flows útiles
+POST /api/auth/verify with the OTP
 
-* **Menú público**: `SELECT * FROM navigation.menus WHERE is_public=true ORDER BY menu_order;`
-* **Menú por rol**:
+6.2 Login
+POST /api/auth/login
 
-  ```sql
-  SELECT m.* FROM navigation.menus m
-  JOIN navigation.roles_menus rm ON rm.menu_id = m.id
-  JOIN identity.users_roles ur ON ur.role_id = rm.role_id
-  WHERE ur.user_id = :userId
-  ORDER BY m.menu_order;
-  ```
-* **Sneakers (UI)**:
+The JWT token is stored in localStorage (or another mechanism) and sent in the Authorization: Bearer {token} header for protected endpoints.
 
-  1. Mongo: `find({ brand, gender })` → obtener `sku` y media.
-  2. PG: `SELECT size, price FROM listing.listings WHERE sneaker_sku IN (...) AND status='PUBLISHED'`.
+6.3 Shop
+GET /api/listings
+Renders the list of published listings.
 
----
+7. Running With the Full Stack
+Start PostgreSQL and MongoDB.
 
-# ✅ 7. Cierre y siguientes pasos
+Start the Python backend on port 8082.
 
-* **OTPs** y **tokens** quedan **100% en Mongo con TTL** (rápidos y efímeros).
-* **Identidad, RBAC, menús y listings** en **PostgreSQL** (sólido y claro).
-* **Python** (Motor/Pydantic) y **Java** (Spring Data JPA/Mongo) listos para integrar.
+Start the Java backend on port 8081.
 
-¿Quieres que te entregue también un **docker-compose** (PG 16 + Mongo 7 + pgAdmin + Mongo Express) y **scripts de seed** (roles, menús públicos Shop/Categorías/Colecciones/Marcas) para que tengas todo corriendo local en 1 comando?
+Configure VITE_API_BASE_URL in .env.local as http://localhost:8081.
+
+Run the frontend:
+
+bash
+Copiar código
+npm run dev
+Open the browser at http://localhost:5173 and go through:
+
+Register → enter OTP → login → browse shop.
+
+This demonstrates the full integration required for Workshop 3.
