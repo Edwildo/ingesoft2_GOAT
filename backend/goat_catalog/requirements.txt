@@ -9,3 +9,10 @@ passlib[bcrypt]>=1.7.4
 aiofiles>=24.0.0
 python-multipart>=0.0.20
 
+# Testing
+pytest>=7.4.4
+pytest-asyncio>=0.23.3
+pytest-cov>=4.1.0
+pytest-mock>=3.12.0
+httpx>=0.26.0
+
