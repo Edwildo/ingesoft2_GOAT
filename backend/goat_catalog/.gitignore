@@ -43,11 +43,6 @@ logs/
 data/
 *.db
 
-# Environment variables
-.env
-.env.local
-.env.*.local
-
 # OS
 Thumbs.db
 
