@@ -25,24 +25,20 @@ def get_client_identifier(request: Request) -> str:
     return get_remote_address(request)
 
 
-async def get_email_identifier(request: Request) -> str:
+def get_email_identifier(request: Request) -> str:
     """Obtiene identificador basado en email del request body.
     
     Usado para rate limiting por email en endpoints OTP.
+    Nota: slowapi llama esta función antes de que FastAPI procese el body,
+    por lo que usamos IP como fallback. El rate limiting por email real
+    se implementa mediante validación en el use case.
     
     Args:
         request: Request de FastAPI
         
     Returns:
-        Email del request o IP como fallback
+        IP del cliente (email se valida en use case)
     """
-    try:
-        body = await request.json()
-        if isinstance(body, dict) and "email" in body:
-            return f"email:{body['email']}"
-    except Exception:
-        pass
-    
     return get_remote_address(request)
 
 
@@ -79,6 +75,9 @@ def configure_rate_limiter(app) -> None:
 def rate_limit_by_email(limit: str) -> Callable:
     """Decorador para rate limiting basado en email.
     
+    Nota: Debido a limitaciones de slowapi, este decorador usa IP como identificador.
+    La validación real por email se hace en el use case verificando OTPs recientes.
+    
     Args:
         limit: Límite en formato "X/minute" o "X/hour"
         
@@ -86,7 +85,7 @@ def rate_limit_by_email(limit: str) -> Callable:
         Decorador para aplicar rate limiting
     """
     limiter = get_limiter()
-    return limiter.limit(limit, key_func=lambda request: get_email_identifier(request))
+    return limiter.limit(limit, key_func=get_email_identifier)
 
 
 def rate_limit_by_ip(limit: str) -> Callable:
