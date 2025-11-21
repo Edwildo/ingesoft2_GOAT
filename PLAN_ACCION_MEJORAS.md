@@ -100,14 +100,17 @@
   4. ✅ Agregado logging estructurado con contexto adicional (extra fields)
   5. ⏳ Fallback a servicio alternativo (puede considerarse en futura mejora)
 
-#### Paso 8: Validación SSL/TLS para SMTP
+#### Paso 8: Validación SSL/TLS para SMTP ⚡ [COMPLETADO]
 - **Objetivo:** Prevenir ataques MITM
 - **Impacto:** Seguridad
 - **Esfuerzo:** 1 hora
-- **Pasos:**
-  1. Configurar validación de certificados en producción
-  2. Agregar configuración para desarrollo (skip validation)
-  3. Documentar configuración
+- **Estado:** ✅ COMPLETADO
+- **Pasos realizados:**
+  1. ✅ Agregada configuración `smtp_validate_cert` (default: true)
+  2. ✅ Implementado SSL context con validación de certificados
+  3. ✅ Configuración flexible para desarrollo (puede desactivarse)
+  4. ✅ Documentación completa en README con ejemplos de proveedores comunes
+  5. ✅ Documentadas mejores prácticas de seguridad
 
 #### Paso 9: Extraer lógica duplicada de índices
 - **Objetivo:** Reducir duplicación de código
