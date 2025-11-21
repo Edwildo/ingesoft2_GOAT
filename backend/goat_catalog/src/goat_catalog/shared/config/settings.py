@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     email_from: str = "noreply@goat.com"
+    smtp_validate_cert: bool = Field(
+        default=True,
+        description="Validar certificados SSL/TLS en producción. False solo para desarrollo/testing",
+    )
 
     # Security
     otp_hash_secret: str = "default_secret_change_in_production"

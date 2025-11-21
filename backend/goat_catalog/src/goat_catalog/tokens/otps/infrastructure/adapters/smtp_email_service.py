@@ -1,6 +1,7 @@
 """Implementación SMTP del servicio de email."""
 
 import logging
+import ssl
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -129,6 +130,24 @@ Si no solicitaste este código, ignora este mensaje."""
         html_content = self._create_html_body(otp_code, purpose_message)
         return plain_text, html_content
 
+    def _create_ssl_context(self) -> ssl.SSLContext | None:
+        """Crea el contexto SSL para la conexión SMTP.
+        
+        Returns:
+            SSLContext configurado o None si no se debe validar
+        """
+        if not self._settings.smtp_validate_cert:
+            if should_log_debug():
+                logger.debug("Validación de certificados SSL deshabilitada (solo desarrollo)")
+            return None
+        
+        context = ssl.create_default_context()
+        
+        if should_log_debug():
+            logger.debug("Validación de certificados SSL habilitada")
+        
+        return context
+
     async def _send_email_internal(
         self,
         to_email: Email,
@@ -150,6 +169,9 @@ Si no solicitaste este código, ignora este mensaje."""
                 logger.debug(f"SMTP Server: {self._settings.smtp_host}:{self._settings.smtp_port}")
                 logger.debug(f"Conexion: STARTTLS={use_start_tls}, TLS Directo={use_tls_direct}")
 
+            # Crear contexto SSL según configuración
+            ssl_context = self._create_ssl_context()
+            
             # Conectar al servidor SMTP
             # IMPORTANTE: use_tls y start_tls son mutuamente excluyentes
             smtp = aiosmtplib.SMTP(
@@ -157,6 +179,7 @@ Si no solicitaste este código, ignora este mensaje."""
                 port=self._settings.smtp_port,
                 use_tls=use_tls_direct,  # Solo para puerto 465
                 start_tls=use_start_tls,  # Solo para puerto 587
+                tls_context=ssl_context,  # Contexto SSL para validación de certificados
             )
 
             await smtp.connect()

@@ -65,6 +65,33 @@ MONGODB_URI=mongodb+srv://epinillap:TuPassword@cluster0.ay2yam4.mongodb.net/?ret
 MONGODB_DATABASE=auth
 ```
 
+**Configuración SMTP (Email):**
+```env
+# Configuración básica
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=tu-email@gmail.com
+SMTP_PASSWORD=tu-app-password
+EMAIL_FROM=noreply@goat.com
+
+# Seguridad SSL/TLS (recomendado: true en producción)
+SMTP_VALIDATE_CERT=true
+
+# Configuración de retry para emails
+EMAIL_MAX_RETRIES=3
+EMAIL_RETRY_INITIAL_DELAY=1.0
+EMAIL_RETRY_MAX_DELAY=10.0
+```
+
+**Proveedores SMTP comunes:**
+
+- **Gmail**: `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, requiere App Password
+- **SendGrid**: `SMTP_HOST=smtp.sendgrid.net`, `SMTP_PORT=587`, usa API Key como password
+- **Outlook/Hotmail**: `SMTP_HOST=smtp-mail.outlook.com`, `SMTP_PORT=587`
+- **AWS SES**: `SMTP_HOST=email-smtp.region.amazonaws.com`, `SMTP_PORT=587`
+
+**Nota de seguridad:** En producción, siempre usa `SMTP_VALIDATE_CERT=true` para prevenir ataques MITM. Solo desactívalo en desarrollo si es necesario.
+
 4. **Si usas MongoDB Local**, iniciar MongoDB:
 ```bash
 docker-compose up -d
@@ -159,6 +186,10 @@ poetry run mypy src/
   - Por email: 5 OTPs/minuto por email
   - Por email: 10 verificaciones/minuto por email
   - Límite global: 60 requests/minuto por IP
+- **Validación SSL/TLS** para conexiones SMTP:
+  - Validación de certificados habilitada por defecto en producción
+  - Configurable mediante `SMTP_VALIDATE_CERT` (false solo para desarrollo)
+  - Previene ataques MITM (Man-in-the-Middle)
 - Validación de inputs con Pydantic
 
 ## 🔗 Integración con Servicios Java
