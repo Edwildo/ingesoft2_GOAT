@@ -75,15 +75,18 @@
 
 ### 🟢 MEDIA PRIORIDAD (Próximo mes)
 
-#### Paso 6: Automatizar inicialización de índices MongoDB
+#### Paso 6: Automatizar inicialización de índices MongoDB ⚡ [COMPLETADO]
 - **Objetivo:** Garantizar índices en producción automáticamente
 - **Impacto:** Operacional
 - **Esfuerzo:** 2-3 horas
-- **Pasos:**
-  1. Crear función helper `create_index_safe()` para reducir duplicación
-  2. Ejecutar script en proceso de deployment
-  3. Agregar health check que verifique índices
-  4. Documentar proceso de deployment
+- **Estado:** ✅ COMPLETADO
+- **Pasos realizados:**
+  1. ✅ Creado módulo compartido `mongo_indexes.py` con función `create_index_safe()`
+  2. ✅ Refactorizado script `init_mongo_indexes.py` para usar módulo compartido (DRY)
+  3. ✅ Automatizada inicialización de índices en startup de la aplicación
+  4. ✅ Agregada función `verify_otp_indexes()` para verificar existencia de índices
+  5. ✅ Mejorado health check endpoint para incluir verificación de índices
+  6. ⏳ Documentación de deployment (puede agregarse en README si es necesario)
 
 #### Paso 7: Mejorar manejo de errores SMTP
 - **Objetivo:** No exponer detalles internos y mejorar resiliencia
