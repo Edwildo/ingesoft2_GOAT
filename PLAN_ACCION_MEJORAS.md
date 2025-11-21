@@ -88,16 +88,17 @@
   5. ✅ Mejorado health check endpoint para incluir verificación de índices
   6. ⏳ Documentación de deployment (puede agregarse en README si es necesario)
 
-#### Paso 7: Mejorar manejo de errores SMTP
+#### Paso 7: Mejorar manejo de errores SMTP ⚡ [COMPLETADO]
 - **Objetivo:** No exponer detalles internos y mejorar resiliencia
 - **Impacto:** Seguridad y confiabilidad
 - **Esfuerzo:** 3-4 horas
-- **Pasos:**
-  1. Crear excepciones de dominio para errores SMTP
-  2. Implementar retry logic con exponential backoff
-  3. Sanitizar mensajes de error para clientes
-  4. Agregar logging estructurado de errores
-  5. Considerar fallback a servicio alternativo
+- **Estado:** ✅ COMPLETADO
+- **Pasos realizados:**
+  1. ✅ Creadas excepciones de dominio (EmailSendException, EmailAuthenticationException, EmailConnectionException, EmailDeliveryException)
+  2. ✅ Implementado retry logic con exponential backoff (módulo `retry.py`)
+  3. ✅ Sanitizados mensajes de error para clientes (user_message en excepciones)
+  4. ✅ Agregado logging estructurado con contexto adicional (extra fields)
+  5. ⏳ Fallback a servicio alternativo (puede considerarse en futura mejora)
 
 #### Paso 8: Validación SSL/TLS para SMTP
 - **Objetivo:** Prevenir ataques MITM
