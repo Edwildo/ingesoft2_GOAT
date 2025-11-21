@@ -8,10 +8,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo.errors import CollectionInvalid, OperationFailure
+from pymongo.errors import OperationFailure
 from pymongo.server_api import ServerApi
 
 from goat_catalog.shared.config import get_settings
+from goat_catalog.shared.infrastructure.mongo_indexes import initialize_otp_indexes
 
 
 async def init_indexes() -> None:
@@ -46,48 +47,13 @@ async def init_indexes() -> None:
 
         print("Inicializando colección 'otps'...\n")
 
-        # Crear índice TTL en expire_at (los documentos se eliminarán automáticamente)
-        try:
-            await collection.create_index(
-                "expire_at",
-                expireAfterSeconds=0,
-                name="expire_at_ttl",
-            )
-            print("✓ Índice TTL creado en 'expire_at' (eliminación automática de OTPs expirados)")
-        except OperationFailure as e:
-            if "already exists" in str(e).lower() or "duplicate key" in str(e).lower():
-                print("✓ Índice TTL 'expire_at' ya existe")
-            else:
-                raise
-
-        # Crear índice único compuesto en email + purpose
-        try:
-            await collection.create_index(
-                [("email", 1), ("purpose", 1)],
-                unique=True,
-                name="email_purpose_unique",
-            )
-            print("✓ Índice único compuesto creado en 'email' + 'purpose'")
-        except OperationFailure as e:
-            if "already exists" in str(e).lower() or "duplicate key" in str(e).lower():
-                print("✓ Índice único 'email' + 'purpose' ya existe")
-            else:
-                raise
-
-        # Crear índice en email para búsquedas rápidas
-        try:
-            await collection.create_index(
-                "email",
-                name="email_index",
-            )
-            print("✓ Índice creado en 'email' para búsquedas rápidas")
-        except OperationFailure as e:
-            if "already exists" in str(e).lower() or "duplicate key" in str(e).lower():
-                print("✓ Índice 'email' ya existe")
-            else:
-                raise
-
-        print("Todos los índices fueron inicializados correctamente")
+        success = await initialize_otp_indexes(database)
+        
+        if success:
+            print("\n✓ Todos los índices fueron inicializados correctamente")
+        else:
+            print("\n⚠ Algunos índices no pudieron ser creados. Revisa los errores arriba.")
+            sys.exit(1)
 
     except OperationFailure as e:
         error_msg = str(e)
