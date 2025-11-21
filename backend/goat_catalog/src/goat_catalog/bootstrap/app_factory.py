@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ..shared.config import get_settings
 from ..shared.config.database import Database
+from ..shared.middleware.rate_limiter import configure_rate_limiter
 
 # Configurar logging
 logging.basicConfig(
@@ -39,6 +40,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Rate Limiting
+    configure_rate_limiter(app)
 
     # Event handlers
     @app.on_event("startup")

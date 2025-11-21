@@ -12,11 +12,14 @@ from ...domain.services.email_service import EmailService
 from ...domain.services.otp_generator_service import OTPGeneratorService
 from ...domain.value_objects.email import Email
 from ...domain.value_objects.otp_hash import OTPHash
+from ...domain.exceptions.otp_max_attempts_exception import OTPMaxAttemptsException
 
 # Agregar src al path para importaciones absolutas
 src_path = Path(__file__).parent.parent.parent.parent.parent
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
+
+from datetime import datetime, timedelta
 
 from goat_catalog.shared.config import get_settings
 from goat_catalog.shared.utils.security import hash_otp
@@ -74,10 +77,30 @@ class GenerateOTPUseCase:
 
         Returns:
             Response con el resultado de la operación
+
+        Raises:
+            OTPMaxAttemptsException: Si se excede el límite de generación por email
         """
         settings = get_settings()
         email = Email(request.email)
         purpose = request.purpose
+
+        # Rate limiting por email: verificar si hay OTP generado recientemente
+        existing_otp = await self._otp_repository.find_by_email_and_purpose(email, purpose)
+        if existing_otp:
+            now = datetime.utcnow()
+            created_at = existing_otp.created_at
+            if created_at.tzinfo:
+                created_at = created_at.replace(tzinfo=None)
+            
+            time_since_creation = now - created_at
+            min_interval_seconds = 60 / settings.rate_limit_otp_per_email
+            
+            if time_since_creation.total_seconds() < min_interval_seconds:
+                remaining_seconds = int(min_interval_seconds - time_since_creation.total_seconds())
+                raise OTPMaxAttemptsException(
+                    f"Debes esperar {remaining_seconds} segundos antes de solicitar un nuevo OTP"
+                )
 
         # Eliminar OTP anterior si existe
         await self._otp_repository.delete_by_email_and_purpose(email, purpose)

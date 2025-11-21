@@ -1,6 +1,6 @@
 """Controller REST para operaciones con OTPs."""
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Request, status
 
 from ...application.dto.confirm_email_response import ConfirmEmailResponse
 from ...application.dto.generate_otp_request import GenerateOTPRequest
@@ -24,6 +24,8 @@ from ...infrastructure.persistence.mongo_confirmed_email_repository import (
     MongoConfirmedEmailRepository,
 )
 from ...infrastructure.persistence.mongo_otp_repository import MongoOTPRepository
+from ....shared.config import get_settings
+from ....shared.middleware.rate_limiter import rate_limit_by_email, rate_limit_by_ip
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -72,7 +74,9 @@ def _get_confirm_email_use_case() -> ConfirmEmailUseCase:
 
 
 @router.post("/otp", response_model=GenerateOTPResponse, status_code=status.HTTP_201_CREATED)
-async def generate_otp(request: GenerateOTPRequest) -> GenerateOTPResponse:
+@rate_limit_by_email(f"{get_settings().rate_limit_otp_per_email}/minute")
+@rate_limit_by_ip(f"{get_settings().rate_limit_otp_per_ip}/minute")
+async def generate_otp(request: GenerateOTPRequest, http_request: Request) -> GenerateOTPResponse:
     """Genera un nuevo código OTP y lo envía por email.
 
     Args:
@@ -87,6 +91,11 @@ async def generate_otp(request: GenerateOTPRequest) -> GenerateOTPResponse:
     try:
         use_case = _get_generate_otp_use_case()
         return await use_case.execute(request)
+    except OTPMaxAttemptsException as e:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=str(e),
+        ) from e
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -100,7 +109,8 @@ async def generate_otp(request: GenerateOTPRequest) -> GenerateOTPResponse:
 
 
 @router.post("/verify", response_model=ValidateOTPResponse, status_code=status.HTTP_200_OK)
-async def verify_otp(request: ValidateOTPRequest) -> ValidateOTPResponse:
+@rate_limit_by_email(f"{get_settings().rate_limit_verify_per_email}/minute")
+async def verify_otp(request: ValidateOTPRequest, http_request: Request) -> ValidateOTPResponse:
     """Valida un código OTP.
 
     Args:

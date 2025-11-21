@@ -50,6 +50,28 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
+    # Rate Limiting
+    rate_limit_per_minute: int = Field(
+        default=60,
+        description="Límite global de requests por minuto por IP",
+    )
+    rate_limit_otp_per_email: int = Field(
+        default=5,
+        description="Límite de generación de OTPs por email por minuto",
+    )
+    rate_limit_otp_per_ip: int = Field(
+        default=10,
+        description="Límite de generación de OTPs por IP por minuto",
+    )
+    rate_limit_verify_per_email: int = Field(
+        default=10,
+        description="Límite de verificaciones de OTP por email por minuto",
+    )
+    rate_limit_storage_uri: str = Field(
+        default="memory://",
+        description="URI de almacenamiento para rate limiting (memory:// para desarrollo, redis:// para producción)",
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

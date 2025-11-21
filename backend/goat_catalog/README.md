@@ -154,7 +154,11 @@ poetry run mypy src/
 
 - OTPs se almacenan como hash (nunca en texto plano)
 - TTL automático en MongoDB para limpieza
-- Rate limiting para prevenir abuso
+- **Rate limiting** implementado:
+  - Por IP: 10 requests/minuto para generación de OTPs
+  - Por email: 5 OTPs/minuto por email
+  - Por email: 10 verificaciones/minuto por email
+  - Límite global: 60 requests/minuto por IP
 - Validación de inputs con Pydantic
 
 ## 🔗 Integración con Servicios Java
