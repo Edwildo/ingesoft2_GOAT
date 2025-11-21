@@ -1,5 +1,9 @@
 """Caso de uso para validar un OTP."""
 
+import logging
+import sys
+from pathlib import Path
+
 from ..dto.validate_otp_request import ValidateOTPRequest
 from ..dto.validate_otp_response import ValidateOTPResponse
 from ...domain.entities.confirmed_email import ConfirmedEmail
@@ -10,8 +14,6 @@ from ...domain.repositories.confirmed_email_repository import ConfirmedEmailRepo
 from ...domain.repositories.otp_repository import OTPRepository
 from ...domain.value_objects.email import Email
 from ...domain.value_objects.otp_purpose import OTPPurpose
-import sys
-from pathlib import Path
 
 # Agregar src al path para importaciones absolutas
 src_path = Path(__file__).parent.parent.parent.parent.parent
@@ -20,6 +22,8 @@ if str(src_path) not in sys.path:
 
 from goat_catalog.shared.config import get_settings
 from goat_catalog.shared.utils.security import verify_otp_hash
+
+logger = logging.getLogger(__name__)
 
 
 class ValidateOTPUseCase:
@@ -57,14 +61,31 @@ class ValidateOTPUseCase:
         email = Email(request.email)
         purpose = request.purpose
 
+        logger.info(
+            f"🔍 Validando OTP para email: {email.value}, "
+            f"purpose: {purpose.value}, otp recibido: {request.otp}"
+        )
+
         # Buscar OTP en repositorio
         otp_token = await self._otp_repository.find_by_email_and_purpose(email, purpose)
 
         if not otp_token:
+            logger.warning(
+                f"❌ OTP no encontrado para email: {email.value}, "
+                f"purpose: {purpose.value}"
+            )
             raise OTPInvalidException("OTP no encontrado")
+
+        logger.info(
+            f"✅ OTP encontrado en BD. Intentos actuales: {otp_token.attempts}, "
+            f"Expira en: {otp_token.expire_at}"
+        )
 
         # Verificar intentos máximos
         if otp_token.has_reached_max_attempts(settings.otp_max_attempts):
+            logger.warning(
+                f"❌ Máximo de intentos alcanzado para email: {email.value}"
+            )
             await self._otp_repository.delete(otp_token)
             raise OTPMaxAttemptsException(
                 f"Máximo de intentos ({settings.otp_max_attempts}) alcanzado"
@@ -73,19 +94,34 @@ class ValidateOTPUseCase:
         # Incrementar intentos
         otp_token.increment_attempts()
         await self._otp_repository.save(otp_token)
+        logger.debug(f"   Intentos incrementados a: {otp_token.attempts}")
 
         # Verificar expiración
         if otp_token.is_expired():
+            logger.warning(
+                f"❌ OTP expirado para email: {email.value}. "
+                f"Expiración: {otp_token.expire_at}"
+            )
             await self._otp_repository.delete(otp_token)
             raise OTPExpiredException("OTP ha expirado")
+
+        logger.debug(f"✅ OTP no expirado. Verificando hash...")
 
         # Verificar hash del OTP
         is_valid = verify_otp_hash(request.otp, otp_token.otp_hash.value)
 
         if not is_valid:
+            logger.warning(
+                f"❌ OTP inválido para email: {email.value}. "
+                f"OTP recibido: '{request.otp}', hash guardado: {otp_token.otp_hash.value[:20]}..."
+            )
             # Guardar intento fallido
             await self._otp_repository.save(otp_token)
             raise OTPInvalidException("OTP inválido")
+
+        logger.info(
+            f"✅ OTP válido para email: {email.value}, purpose: {purpose.value}"
+        )
 
         # OTP válido - eliminar del repositorio
         await self._otp_repository.delete(otp_token)
@@ -94,6 +130,7 @@ class ValidateOTPUseCase:
         if purpose == OTPPurpose.EMAIL_CONFIRMATION and self._confirmed_email_repository:
             confirmed_email = ConfirmedEmail.create(email)
             await self._confirmed_email_repository.save(confirmed_email)
+            logger.info(f"✅ Email {email.value} marcado como confirmado")
 
         return ValidateOTPResponse(
             success=True,

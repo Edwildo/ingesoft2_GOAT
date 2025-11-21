@@ -1,4 +1,9 @@
-/* Reset y variables */
+/* Importar constantes de tema */
+@import './theme.css';
+
+/* ============================================
+   RESET Y BASE
+   ============================================ */
 * {
   margin: 0;
   padding: 0;
@@ -6,68 +11,96 @@
 }
 
 :root {
-  /* Colores - Paleta de grises estilo periódico */
-  --color-black: #000000;
-  --color-gray-900: #111827;
-  --color-gray-800: #1f2937;
-  --color-gray-700: #374151;
-  --color-gray-600: #4b5563;
-  --color-gray-500: #6b7280;
-  --color-gray-400: #9ca3af;
-  --color-gray-300: #d1d5db;
-  --color-gray-200: #e5e7eb;
-  --color-gray-100: #f3f4f6;
-  --color-white: #ffffff;
-
-  /* Colores de acento */
-  --color-primary: #1f2937;
-  --color-primary-dark: #111827;
-  --color-accent: #3b82f6;
-  --color-success: #22c55e;
-  --color-error: #dc2626;
-  --color-warning: #f59e0b;
+  /* Colores - Importados desde theme.css */
+  --color-black: var(--theme-color-black);
+  --color-gray-900: var(--theme-color-gray-900);
+  --color-gray-800: var(--theme-color-gray-800);
+  --color-gray-700: var(--theme-color-gray-700);
+  --color-gray-600: var(--theme-color-gray-600);
+  --color-gray-500: var(--theme-color-gray-500);
+  --color-gray-400: var(--theme-color-gray-400);
+  --color-gray-300: var(--theme-color-gray-300);
+  --color-gray-200: var(--theme-color-gray-200);
+  --color-gray-100: var(--theme-color-gray-100);
+  --color-white: var(--theme-color-white);
+  --color-primary: var(--theme-color-primary);
+  --color-primary-dark: var(--theme-color-primary-dark);
+  --color-accent: var(--theme-color-accent);
+  --color-success: var(--theme-color-success);
+  --color-error: var(--theme-color-error);
+  --color-warning: var(--theme-color-warning);
+  --color-info: var(--theme-color-info);
 
   /* Tipografía */
-  --font-serif: 'Georgia', 'Times New Roman', serif;
-  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  --font-mono: 'Courier New', Courier, monospace;
+  --font-serif: var(--theme-font-serif);
+  --font-sans: var(--theme-font-sans);
+  --font-mono: var(--theme-font-mono);
 
   /* Espaciado */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-2xl: 3rem;
+  --spacing-xs: var(--theme-spacing-xs);
+  --spacing-sm: var(--theme-spacing-sm);
+  --spacing-md: var(--theme-spacing-md);
+  --spacing-lg: var(--theme-spacing-lg);
+  --spacing-xl: var(--theme-spacing-xl);
+  --spacing-2xl: var(--theme-spacing-2xl);
 
   /* Bordes */
-  --border-radius-sm: 0.25rem;
-  --border-radius-md: 0.5rem;
-  --border-radius-lg: 0.75rem;
+  --border-radius-sm: var(--theme-border-radius-sm);
+  --border-radius-md: var(--theme-border-radius-md);
+  --border-radius-lg: var(--theme-border-radius-lg);
 
   /* Sombras */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-sm: var(--theme-shadow-sm);
+  --shadow-md: var(--theme-shadow-md);
+  --shadow-lg: var(--theme-shadow-lg);
 
   /* Transiciones */
-  --transition-fast: 0.15s ease;
-  --transition-base: 0.2s ease;
-  --transition-slow: 0.3s ease;
+  --transition-fast: var(--theme-transition-fast);
+  --transition-base: var(--theme-transition-base);
+  --transition-slow: var(--theme-transition-slow);
 }
 
+/* ============================================
+   BASE STYLES
+   ============================================ */
 body {
   font-family: var(--font-sans);
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: var(--theme-font-size-base);
+  line-height: var(--theme-line-height-relaxed);
   color: var(--color-gray-900);
   background-color: var(--color-white);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Tipografía estilo periódico */
+/* Todos los elementos de texto usan sans-serif por defecto */
+* {
+  font-family: var(--font-sans);
+}
+
+/* Solo los títulos usan serif */
+h1, h2, h3, h4, h5, h6,
+.title,
+.page-title,
+.form-title,
+.authTitle,
+.dashboardTitle,
+.welcomeTitle {
+  font-family: var(--font-serif);
+}
+
+/* Códigos y elementos técnicos usan mono */
+code,
+pre,
+.mono,
+.countdown,
+.otpInput {
+  font-family: var(--font-mono);
+}
+
+/* ============================================
+   TIPOGRAFÍA ESTILO PERIÓDICO
+   ============================================ */
 h1,
 h2,
 h3,
@@ -75,36 +108,36 @@ h4,
 h5,
 h6 {
   font-family: var(--font-serif);
-  font-weight: 700;
-  line-height: 1.2;
+  font-weight: var(--theme-font-weight-bold);
+  line-height: var(--theme-line-height-tight);
   color: var(--color-gray-900);
   margin-bottom: var(--spacing-md);
 }
 
 h1 {
-  font-size: 2.5rem;
-  letter-spacing: -0.02em;
+  font-size: var(--theme-font-size-4xl);
+  letter-spacing: var(--theme-letter-spacing-tighter);
 }
 
 h2 {
-  font-size: 2rem;
-  letter-spacing: -0.01em;
+  font-size: var(--theme-font-size-3xl);
+  letter-spacing: var(--theme-letter-spacing-tight);
 }
 
 h3 {
-  font-size: 1.5rem;
+  font-size: var(--theme-font-size-2xl);
 }
 
 h4 {
-  font-size: 1.25rem;
+  font-size: var(--theme-font-size-xl);
 }
 
 h5 {
-  font-size: 1.125rem;
+  font-size: var(--theme-font-size-lg);
 }
 
 h6 {
-  font-size: 1rem;
+  font-size: var(--theme-font-size-base);
 }
 
 p {
@@ -123,7 +156,9 @@ a:hover {
   text-decoration: underline;
 }
 
-/* Utilidades */
+/* ============================================
+   UTILIDADES GLOBALES
+   ============================================ */
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -138,15 +173,29 @@ a:hover {
   font-family: var(--font-serif);
 }
 
+.text-sans {
+  font-family: var(--font-sans);
+}
+
+.text-mono {
+  font-family: var(--font-mono);
+}
+
 .text-gray {
   color: var(--color-gray-600);
 }
 
 .text-small {
-  font-size: 0.875rem;
+  font-size: var(--theme-font-size-sm);
 }
 
-/* Layout estilo periódico */
+.text-xs {
+  font-size: var(--theme-font-size-xs);
+}
+
+/* ============================================
+   LAYOUT ESTILO PERIÓDICO
+   ============================================ */
 .page-layout {
   min-height: 100vh;
   display: flex;
@@ -155,18 +204,18 @@ a:hover {
 }
 
 .page-header {
-  border-bottom: 2px solid var(--color-gray-900);
+  border-bottom: var(--theme-border-width-base) solid var(--color-gray-900);
   padding: var(--spacing-lg) 0;
   margin-bottom: var(--spacing-xl);
 }
 
 .page-title {
   font-family: var(--font-serif);
-  font-size: 2.5rem;
-  font-weight: 700;
+  font-size: var(--theme-font-size-4xl);
+  font-weight: var(--theme-font-weight-bold);
   text-align: center;
   color: var(--color-gray-900);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--theme-letter-spacing-wider);
   text-transform: uppercase;
 }
 
@@ -176,32 +225,34 @@ a:hover {
 }
 
 .page-footer {
-  border-top: 1px solid var(--color-gray-300);
+  border-top: var(--theme-border-width-thin) solid var(--color-gray-300);
   padding: var(--spacing-lg) 0;
   margin-top: var(--spacing-2xl);
   text-align: center;
   color: var(--color-gray-600);
-  font-size: 0.875rem;
+  font-size: var(--theme-font-size-sm);
 }
 
-/* Formularios estilo periódico */
+/* ============================================
+   FORMULARIOS ESTILO PERIÓDICO
+   ============================================ */
 .form-container {
   max-width: 500px;
   margin: 0 auto;
   padding: var(--spacing-xl);
   background-color: var(--color-white);
-  border: 1px solid var(--color-gray-300);
+  border: var(--theme-border-width-thin) solid var(--color-gray-300);
 }
 
 .form-title {
   font-family: var(--font-serif);
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: var(--theme-font-size-3xl);
+  font-weight: var(--theme-font-weight-bold);
   text-align: center;
   margin-bottom: var(--spacing-lg);
   color: var(--color-gray-900);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--theme-letter-spacing-wide);
 }
 
 .form-section {
@@ -209,7 +260,7 @@ a:hover {
 }
 
 .form-divider {
-  height: 1px;
+  height: var(--theme-border-width-thin);
   background-color: var(--color-gray-300);
   margin: var(--spacing-xl) 0;
   border: none;
@@ -219,34 +270,12 @@ a:hover {
   text-align: center;
   margin-top: var(--spacing-lg);
   color: var(--color-gray-600);
-  font-size: 0.875rem;
+  font-size: var(--theme-font-size-sm);
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  h1 {
-    font-size: 2rem;
-  }
-
-  h2 {
-    font-size: 1.75rem;
-  }
-
-  .page-title {
-    font-size: 2rem;
-  }
-
-  .form-container {
-    padding: var(--spacing-lg);
-    margin: var(--spacing-md);
-  }
-
-  .form-title {
-    font-size: 1.5rem;
-  }
-}
-
-/* Scrollbar personalizado */
+/* ============================================
+   SCROLLBAR PERSONALIZADO
+   ============================================ */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -265,9 +294,36 @@ a:hover {
   background: var(--color-gray-500);
 }
 
-/* Focus visible para accesibilidad */
+/* ============================================
+   FOCUS VISIBLE PARA ACCESIBILIDAD
+   ============================================ */
 *:focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: var(--theme-border-width-base) solid var(--color-accent);
   outline-offset: 2px;
 }
 
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  h1 {
+    font-size: var(--theme-font-size-3xl);
+  }
+
+  h2 {
+    font-size: var(--theme-font-size-2xl);
+  }
+
+  .page-title {
+    font-size: var(--theme-font-size-3xl);
+  }
+
+  .form-container {
+    padding: var(--spacing-lg);
+    margin: var(--spacing-md);
+  }
+
+  .form-title {
+    font-size: var(--theme-font-size-2xl);
+  }
+}

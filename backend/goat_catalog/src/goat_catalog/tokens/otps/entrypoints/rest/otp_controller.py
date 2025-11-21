@@ -17,7 +17,9 @@ from ...domain.exceptions.otp_invalid_exception import OTPInvalidException
 from ...domain.exceptions.otp_max_attempts_exception import OTPMaxAttemptsException
 from ...domain.repositories.confirmed_email_repository import ConfirmedEmailRepository
 from ...domain.repositories.otp_repository import OTPRepository
+from ...domain.services.email_service import EmailService
 from ...domain.services.otp_generator_service import OTPGeneratorService
+from ...infrastructure.adapters.smtp_email_service import SMTPEmailService
 from ...infrastructure.persistence.mongo_confirmed_email_repository import (
     MongoConfirmedEmailRepository,
 )
@@ -26,11 +28,22 @@ from ...infrastructure.persistence.mongo_otp_repository import MongoOTPRepositor
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
+def _get_email_service() -> EmailService | None:
+    """Factory para obtener instancia de EmailService."""
+    try:
+        return SMTPEmailService()
+    except Exception:
+        # Si hay error en la configuración SMTP, retornar None
+        # El servicio continuará funcionando sin envío de emails
+        return None
+
+
 def _get_generate_otp_use_case() -> GenerateOTPUseCase:
     """Factory para obtener instancia de GenerateOTPUseCase."""
     otp_repository: OTPRepository = MongoOTPRepository()
     otp_generator_service = OTPGeneratorService()
-    return GenerateOTPUseCase(otp_repository, otp_generator_service)
+    email_service = _get_email_service()
+    return GenerateOTPUseCase(otp_repository, otp_generator_service, email_service)
 
 
 def _get_validate_otp_use_case() -> ValidateOTPUseCase:

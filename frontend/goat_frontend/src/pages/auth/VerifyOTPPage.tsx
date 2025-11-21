@@ -5,7 +5,6 @@ import { Button } from '../../components/common/Button';
 import { Alert } from '../../components/common/Alert';
 import { OTPInput } from '../../components/auth/OTPInput';
 import { useOTP } from '../../hooks/useOTP';
-import { authService } from '../../api/auth.service';
 import { OTPPurpose } from '../../types/auth.types';
 import { validateOTP } from '../../utils/validators';
 import styles from './AuthPage.module.css';
@@ -21,18 +20,18 @@ export const VerifyOTPPage: React.FC<VerifyOTPPageProps> = () => {
   
   const stateEmail = location.state?.email as string | undefined;
   const statePurpose = location.state?.purpose as OTPPurpose | undefined;
+  const otpAlreadyGenerated = location.state?.otpGenerated as boolean | undefined;
   
-  const [email, setEmail] = useState(stateEmail || '');
-  const [purpose, setPurpose] = useState<OTPPurpose>(statePurpose || 'EMAIL_CONFIRMATION');
-  const [otp, setOtp] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [email] = useState(stateEmail || '');
+  const [purpose] = useState<OTPPurpose>(statePurpose || 'EMAIL_CONFIRMATION');
   const [isGenerating, setIsGenerating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [expiresIn, setExpiresIn] = useState<number | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [hasGeneratedOTP, setHasGeneratedOTP] = useState(otpAlreadyGenerated || false);
 
-  const { generateOTP, verifyOTP } = useOTP();
+  const { otp, setOtp, generateOTP, verifyOTP, isLoading, error } = useOTP();
 
   useEffect(() => {
     if (!email) {
@@ -41,8 +40,17 @@ export const VerifyOTPPage: React.FC<VerifyOTPPageProps> = () => {
       return;
     }
 
-    // Generar OTP automáticamente al cargar
-    handleGenerateOTP();
+    // Solo generar OTP automáticamente si no se ha generado ya
+    if (!hasGeneratedOTP) {
+      handleGenerateOTP();
+    } else {
+      // Si ya se generó, mostrar mensaje y configurar countdown
+      setMessage({
+        type: 'success',
+        text: `Código OTP enviado a ${email}. Por favor, ingrésalo para continuar.`,
+      });
+      setExpiresIn(5); // 5 minutos por defecto
+    }
   }, []);
 
   useEffect(() => {
@@ -61,13 +69,18 @@ export const VerifyOTPPage: React.FC<VerifyOTPPageProps> = () => {
   }, [countdown]);
 
   const handleGenerateOTP = async () => {
+    // Prevenir múltiples llamadas simultáneas
+    if (isGenerating) {
+      return;
+    }
+
     setIsGenerating(true);
-    setError(null);
     setMessage(null);
 
     const success = await generateOTP(email, purpose);
     
     if (success) {
+      setHasGeneratedOTP(true);
       setMessage({
         type: 'success',
         text: `Código OTP enviado a ${email}. Por favor, ingrésalo para continuar.`,
@@ -84,14 +97,22 @@ export const VerifyOTPPage: React.FC<VerifyOTPPageProps> = () => {
   };
 
   const handleVerifyOTP = async () => {
-    const validation = validateOTP(otp);
-    if (!validation.valid) {
-      setError(validation.message);
+    // Prevenir múltiples llamadas simultáneas
+    if (isVerifying || isLoading) {
       return;
     }
 
-    setError(null);
-    setIsLoading(true);
+    // Normalizar el OTP antes de validar
+    const normalizedOTP = otp.replace(/\D/g, '').slice(0, 6);
+    
+    const validation = validateOTP(normalizedOTP);
+    if (!validation.valid) {
+      setMessage({ type: 'error', text: validation.message || 'El código OTP debe tener 6 dígitos' });
+      return;
+    }
+
+    setIsVerifying(true);
+    setMessage(null);
 
     const success = await verifyOTP(email, purpose);
     
@@ -112,10 +133,11 @@ export const VerifyOTPPage: React.FC<VerifyOTPPageProps> = () => {
         }
       }, 1500);
     } else {
-      setMessage({ type: 'error', text: 'Código OTP inválido o expirado' });
+      // El error ya está manejado por el hook useOTP
+      setMessage({ type: 'error', text: error || 'Código OTP inválido o expirado' });
     }
     
-    setIsLoading(false);
+    setIsVerifying(false);
   };
 
   const formatTime = (seconds: number): string => {
@@ -159,10 +181,13 @@ export const VerifyOTPPage: React.FC<VerifyOTPPageProps> = () => {
 
             <OTPInput
               value={otp}
-              onChange={setOtp}
-              onComplete={handleVerifyOTP}
+              onChange={(value) => {
+                setOtp(value);
+                setMessage(null); // Limpiar mensajes al cambiar el OTP
+              }}
+              onComplete={undefined}
               error={error || undefined}
-              disabled={isLoading}
+              disabled={isLoading || isVerifying}
             />
 
             {countdown !== null && countdown > 0 && (
@@ -181,8 +206,8 @@ export const VerifyOTPPage: React.FC<VerifyOTPPageProps> = () => {
               <Button
                 variant="primary"
                 onClick={handleVerifyOTP}
-                isLoading={isLoading}
-                disabled={otp.length !== 6 || countdown === 0}
+                isLoading={isLoading || isVerifying}
+                disabled={otp.replace(/\D/g, '').length !== 6 || countdown === 0 || isVerifying || isLoading}
                 fullWidth
               >
                 Verificar Código

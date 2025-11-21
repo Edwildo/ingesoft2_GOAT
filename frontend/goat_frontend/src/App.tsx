@@ -7,6 +7,7 @@ import { VerifyOTPPage } from './pages/auth/VerifyOTPPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { Loading } from './components/common/Loading';
+import './styles/theme.css';
 import './styles/globals.css';
 
 // Componente para proteger rutas

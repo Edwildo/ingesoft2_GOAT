@@ -1,11 +1,11 @@
-export const API_BASE_URL = 'http://localhost:8081';
+export const API_BASE_URL = 'http://localhost:8081'; // Servicio Java - Único punto de entrada
 
 export const API_ENDPOINTS = {
   AUTH: {
     REGISTER: '/api/auth/register',
     LOGIN: '/api/auth/login',
     OTP: '/api/auth/otp',
-    VERIFY: '/api/auth/verify',
+    VERIFY: '/api/auth/verify', // Java actúa como proxy/intermediario con Python
     CONFIRM_EMAIL: '/api/auth/confirm-email',
   },
 } as const;

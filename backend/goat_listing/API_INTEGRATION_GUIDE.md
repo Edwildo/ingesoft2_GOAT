@@ -24,6 +24,22 @@ Esta guía proporciona toda la información necesaria para integrar el frontend 
 - El servicio Java se comunica internamente con el servicio Python cuando es necesario
 - El frontend **NO debe** llamar directamente al servicio Python
 
+### 🔐 Responsabilidades de Cada Servicio
+
+#### Servicio Java (Puerto 8081)
+- ✅ Gestión de usuarios (crear, buscar, actualizar)
+- ✅ Autenticación y autorización (login, tokens JWT)
+- ✅ Validación de reglas de negocio (email confirmado, usuario activo)
+- ✅ **Intermediario/Proxy** para operaciones de OTP
+- ✅ Actualización de estado en PostgreSQL cuando corresponde
+
+#### Servicio Python (Puerto 8082)
+- ✅ **Generación de códigos OTP** (única fuente de generación)
+- ✅ **Almacenamiento de OTPs en MongoDB** (con TTL automático)
+- ✅ **Envío de OTPs por email**
+- ✅ **Validación de OTPs** (verifica expiración, intentos, etc.)
+- ✅ Gestión de emails confirmados en MongoDB
+
 ---
 
 ## 📋 Endpoints del Servicio Java (Frontend → Java)
@@ -122,6 +138,19 @@ curl -X POST "http://localhost:8081/api/auth/register" \
 - `400 Bad Request`: Email inválido o propósito incorrecto
 - `500 Internal Server Error`: Error al generar OTP (servicio Python no disponible)
 
+**⚠️ Importante - Flujo Interno:**
+1. El frontend llama a `POST /api/auth/otp` en el servicio Java
+2. El servicio Java **NO genera el OTP**, solo actúa como intermediario
+3. Java reenvía la petición al servicio Python: `POST http://localhost:8082/api/auth/otp`
+4. **El servicio Python es quien:**
+   - Genera el código OTP (6 dígitos aleatorios)
+   - Guarda el OTP hasheado en MongoDB con TTL (expira en 5 minutos)
+   - Envía el código OTP por email al usuario
+5. Python retorna éxito al servicio Java
+6. Java retorna la respuesta al frontend
+
+**El código OTP nunca se genera en Java, solo en Python.**
+
 **Ejemplo con cURL:**
 ```bash
 curl -X POST "http://localhost:8081/api/auth/otp" \
@@ -166,7 +195,25 @@ curl -X POST "http://localhost:8081/api/auth/otp" \
 - `400 Bad Request`: OTP inválido o expirado
 - `500 Internal Server Error`: Error interno del servidor
 
-**Nota importante:** Si el propósito es `EMAIL_CONFIRMATION` y el OTP es válido, el sistema automáticamente marca el email como confirmado en la base de datos.
+**⚠️ Importante - Flujo Interno de Verificación:**
+1. El frontend llama a `POST /api/auth/verify` en el servicio Java
+2. El servicio Java **NO valida el OTP**, solo actúa como intermediario
+3. Java reenvía la petición al servicio Python: `POST http://localhost:8082/api/auth/verify`
+4. **El servicio Python es quien:**
+   - Busca el OTP en MongoDB
+   - Verifica que el código coincida (comparando hash)
+   - Verifica que no haya expirado (TTL)
+   - Verifica que no se hayan excedido los intentos máximos
+   - Retorna si el OTP es válido o no
+5. Si el OTP es válido y `purpose = "EMAIL_CONFIRMATION"`:
+   - **Java actualiza `email_confirmed = true` en PostgreSQL** (tabla `identity.users`)
+   - Esta actualización se hace automáticamente, no requiere endpoint adicional
+6. Java retorna la respuesta al frontend
+
+**Resumen:**
+- ✅ **Validación del OTP**: Se hace en Python (MongoDB)
+- ✅ **Actualización de estado**: Se hace en Java (PostgreSQL) cuando corresponde
+- ✅ **El OTP nunca se valida en Java**, solo se delega a Python
 
 **Ejemplo con cURL:**
 ```bash
@@ -393,38 +440,60 @@ curl -X POST "http://localhost:8081/api/auth/login" \
 ┌─────────────────┐         ┌──────────────────┐
 │ Servicio Java   │────────>│ Servicio Python  │
 │ (Puerto 8081)   │         │ (Puerto 8082)    │
+│ [PROXY]         │         │                  │
 └─────────────────┘         └──────────────────┘
      │                            │
-     │                            │ 5. Genera OTP
-     │                            │    Guarda en MongoDB
-     │                            │    Envía por email
+     │                            │ 5. Python genera código OTP
+     │                            │    (6 dígitos aleatorios)
      │                            │
-     │ 6. Retorna success         │
+     │                            │ 6. Python guarda OTP hasheado
+     │                            │    en MongoDB con TTL (5 min)
+     │                            │
+     │                            │ 7. Python envía OTP por email
+     │                            │
+     │ 8. Python retorna success  │
+     │    Java retorna al frontend │
      ▼                            │
 ┌──────────┐                     │
 │ Frontend │                     │
 └────┬─────┘                     │
      │                            │
-     │ 7. Usuario ingresa OTP     │
+     │ 9. Usuario ingresa OTP     │
+     │    recibido por email      │
      │                            │
-     │ 8. POST /api/auth/verify   │
-     │    {email, otp, purpose}   │
+     │ 10. POST /api/auth/verify  │
+     │     {email, otp, purpose}  │
      ▼                            │
 ┌─────────────────┐         ┌──────────────────┐
 │ Servicio Java   │────────>│ Servicio Python  │
 │ (Puerto 8081)   │         │ (Puerto 8082)    │
+│ [PROXY]         │         │                  │
 └─────────────────┘         └──────────────────┘
      │                            │
-     │                            │ 9. Valida OTP
-     │                            │    Si purpose = EMAIL_CONFIRMATION
-     │                            │    → Marca email como confirmado
+     │                            │ 11. Python busca OTP en MongoDB
      │                            │
-     │ 10. Retorna valid: true    │
+     │                            │ 12. Python valida:
+     │                            │     - Código coincide (hash)
+     │                            │     - No ha expirado (TTL)
+     │                            │     - Intentos no excedidos
+     │                            │
+     │                            │ 13. Python retorna: valid = true
+     │                            │
+     │ 14. Si purpose = EMAIL_CONFIRMATION │
+     │     Java actualiza PostgreSQL:      │
+     │     UPDATE users SET email_confirmed = true │
+     │                            │
+     │ 15. Java retorna valid: true │
      ▼                            │
 ┌──────────┐                     │
 │ Frontend │                     │
 └──────────┘                     │
 ```
+
+**Leyenda:**
+- 🔵 **Azul**: Operaciones del Servicio Java
+- 🟢 **Verde**: Operaciones del Servicio Python
+- ⚪ **Blanco**: Interacción con Frontend
 
 ---
 
@@ -903,6 +972,82 @@ if (token) {
 5. **Muestra mensajes de error genéricos** - No expongas información sensible
 6. **Implementa timeout para OTPs** - Muestra cuenta regresiva de 5 minutos
 7. **Valida formato de OTP** - Solo números, 6 dígitos
+
+## 🔍 Detalles Técnicos del Flujo de OTP
+
+### ¿Dónde se genera el OTP?
+- ✅ **Solo en el Servicio Python** (Puerto 8082)
+- ❌ **NO se genera en Java**
+- El servicio Java actúa como **proxy/intermediario** entre el frontend y Python
+
+### ¿Dónde se valida el OTP?
+- ✅ **Solo en el Servicio Python** (Puerto 8082)
+- ❌ **NO se valida en Java**
+- Python verifica en MongoDB: código, expiración, intentos máximos
+- El servicio Java solo reenvía la petición y procesa el resultado
+
+### ¿Dónde se almacena el OTP?
+- ✅ **MongoDB** (base de datos `auth` en el servicio Python)
+- ❌ **NO se almacena en PostgreSQL**
+- Los OTPs tienen TTL (Time To Live) de 5 minutos y se eliminan automáticamente
+
+### ¿Dónde se actualiza el estado de email confirmado?
+- ✅ **PostgreSQL** (tabla `identity.users`, campo `email_confirmed`)
+- ✅ **Se actualiza automáticamente** cuando se verifica un OTP con `purpose: "EMAIL_CONFIRMATION"`
+- ✅ **Se actualiza desde el Servicio Java** después de recibir confirmación de Python
+
+### Flujo Detallado de Generación de OTP
+
+```
+Frontend → Java (POST /api/auth/otp)
+    ↓
+Java valida request (email, purpose)
+    ↓
+Java → Python (POST http://localhost:8082/api/auth/otp)
+    ↓
+Python genera código OTP (6 dígitos aleatorios)
+    ↓
+Python hashea el OTP (nunca se guarda en texto plano)
+    ↓
+Python guarda hash en MongoDB con TTL de 5 minutos
+    ↓
+Python envía OTP por email al usuario
+    ↓
+Python retorna { success: true } a Java
+    ↓
+Java retorna respuesta al Frontend
+```
+
+### Flujo Detallado de Verificación de OTP
+
+```
+Frontend → Java (POST /api/auth/verify)
+    ↓
+Java valida request (email, otp, purpose)
+    ↓
+Java → Python (POST http://localhost:8082/api/auth/verify)
+    ↓
+Python busca OTP en MongoDB por email y purpose
+    ↓
+Python hashea el OTP recibido
+    ↓
+Python compara hash recibido vs hash almacenado
+    ↓
+Python verifica:
+  - Hash coincide ✅
+  - No ha expirado (TTL) ✅
+  - Intentos no excedidos ✅
+    ↓
+Python retorna { valid: true/false } a Java
+    ↓
+Si valid = true Y purpose = "EMAIL_CONFIRMATION":
+    Java actualiza PostgreSQL:
+    UPDATE identity.users 
+    SET email_confirmed = true 
+    WHERE email = ?
+    ↓
+Java retorna respuesta al Frontend
+```
 
 ---
 

@@ -4,7 +4,7 @@
 from .entities import ConfirmedEmail, OTPToken
 from .value_objects import Email, OTPHash, OTPPurpose
 from .repositories import ConfirmedEmailRepository, OTPRepository
-from .services import OTPGeneratorService
+from .services import EmailService, OTPGeneratorService
 from .exceptions import (
     OTPExpiredException,
     OTPInvalidException,
@@ -23,6 +23,7 @@ __all__ = [
     "ConfirmedEmailRepository",
     "OTPRepository",
     # Services
+    "EmailService",
     "OTPGeneratorService",
     # Exceptions
     "OTPExpiredException",

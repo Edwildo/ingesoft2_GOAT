@@ -81,6 +81,14 @@ export const RegisterPage: React.FC = () => {
         text: `Código OTP enviado a ${email}. Por favor, ingrésalo para confirmar tu email.`,
       });
       setStep('verify');
+      // Marcar que el OTP ya fue generado para evitar duplicados
+      navigate('/verify-otp', { 
+        state: { 
+          email, 
+          purpose: 'EMAIL_CONFIRMATION',
+          otpGenerated: true 
+        } 
+      });
     } catch (error) {
       setMessage({ type: 'error', text: 'Error de conexión con el servidor' });
     } finally {
@@ -88,10 +96,7 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
-  if (step === 'verify') {
-    navigate('/verify-otp', { state: { email, purpose: 'EMAIL_CONFIRMATION' } });
-    return null;
-  }
+  // El navigate ya se hace en handleRegister, no necesitamos este if
 
   return (
     <div className={styles.authPage}>

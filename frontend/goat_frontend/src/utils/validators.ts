@@ -28,16 +28,19 @@ export const validatePassword = (password: string): { valid: boolean; message?: 
 };
 
 export const validateOTP = (otp: string): { valid: boolean; message?: string } => {
-  if (!otp) {
+  // Normalizar: solo números
+  const normalizedOTP = otp.replace(/\D/g, '');
+  
+  if (!normalizedOTP || normalizedOTP.length === 0) {
     return { valid: false, message: 'El código OTP es requerido' };
   }
   
-  if (!/^\d+$/.test(otp)) {
-    return { valid: false, message: 'El código OTP debe contener solo números' };
+  if (normalizedOTP.length !== 6) {
+    return { valid: false, message: 'El código OTP debe tener exactamente 6 dígitos' };
   }
   
-  if (otp.length !== 6) {
-    return { valid: false, message: 'El código OTP debe tener 6 dígitos' };
+  if (!/^\d{6}$/.test(normalizedOTP)) {
+    return { valid: false, message: 'El código OTP debe contener solo números' };
   }
   
   return { valid: true };

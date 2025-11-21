@@ -28,7 +28,7 @@ export const ResetPasswordPage: React.FC = () => {
     e.preventDefault();
     
     const emailValidation = validateEmail(email);
-    if (!emailValidation.valid) {
+    if (!emailValidation.valid && emailValidation.message) {
       setErrors({ email: emailValidation.message });
       return;
     }
@@ -48,7 +48,13 @@ export const ResetPasswordPage: React.FC = () => {
           text: `Código OTP enviado a ${email}. Por favor, ingrésalo para continuar.`,
         });
         setStep('verify');
-        navigate('/verify-otp', { state: { email, purpose: 'RESET_PASSWORD' } });
+        navigate('/verify-otp', { 
+          state: { 
+            email, 
+            purpose: 'RESET_PASSWORD',
+            otpGenerated: true 
+          } 
+        });
       } else {
         setMessage({
           type: 'error',
@@ -68,7 +74,7 @@ export const ResetPasswordPage: React.FC = () => {
     const newErrors: Record<string, string> = {};
     
     const passwordValidation = validatePassword(newPassword);
-    if (!passwordValidation.valid) {
+    if (!passwordValidation.valid && passwordValidation.message) {
       newErrors.newPassword = passwordValidation.message;
     }
     

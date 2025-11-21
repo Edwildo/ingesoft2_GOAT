@@ -9,7 +9,6 @@ import {
   VerifyOtpRequest,
   VerifyOtpResponse,
   EmailConfirmationResponse,
-  OTPPurpose,
 } from '../types/auth.types';
 import { ApiResponse } from '../types/api.types';
 
@@ -70,15 +69,19 @@ export const authService = {
 
   /**
    * Verifica un código OTP
+   * El frontend llama al servicio Java, que actúa como proxy/intermediario con el servicio Python
    */
   verifyOTP: async (data: VerifyOtpRequest): Promise<ApiResponse<VerifyOtpResponse>> => {
     try {
+      console.log('Llamando a verifyOTP a través de Java:', { endpoint: '/api/auth/verify', data });
       const response = await apiClient.post<VerifyOtpResponse>('/api/auth/verify', data);
+      console.log('Respuesta de verifyOTP:', response.data);
       return {
         success: true,
         data: response.data,
       };
     } catch (error) {
+      console.error('Error en verifyOTP:', error);
       return {
         success: false,
         error: handleApiError(error),
@@ -116,13 +119,18 @@ export const authService = {
     password: string
   ): Promise<ApiResponse<{ user: RegisterResponse; otpSent: boolean }>> => {
     try {
-      // Paso 1: Registrar usuario
       const registerResult = await authService.register({ email, password });
       if (!registerResult.success || !registerResult.data) {
-        return registerResult as ApiResponse<{ user: RegisterResponse; otpSent: boolean }>;
+        return {
+          success: false,
+          error: registerResult.error || {
+            status: 500,
+            error: 'Error',
+            message: 'Error al registrar usuario',
+          },
+        };
       }
 
-      // Paso 2: Generar OTP
       const otpResult = await authService.generateOTP({
         email,
         purpose: 'EMAIL_CONFIRMATION',

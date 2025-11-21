@@ -44,7 +44,10 @@ export function useOTP(): UseOTPReturn {
   }, []);
 
   const verifyOTP = useCallback(async (email: string, purpose: OTPPurpose): Promise<boolean> => {
-    if (!otp || otp.length !== 6) {
+    // Normalizar el OTP: solo números, exactamente 6 dígitos
+    const normalizedOTP = otp.replace(/\D/g, '').slice(0, 6);
+    
+    if (!normalizedOTP || normalizedOTP.length !== 6) {
       setError('El código OTP debe tener 6 dígitos');
       return false;
     }
@@ -53,7 +56,9 @@ export function useOTP(): UseOTPReturn {
     setError(null);
     
     try {
-      const response = await authService.verifyOTP({ email, otp, purpose });
+      console.log('Verificando OTP:', { email, otp: normalizedOTP, purpose });
+      const response = await authService.verifyOTP({ email, otp: normalizedOTP, purpose });
+      console.log('Respuesta del servidor:', response);
       
       if (response.success && response.data?.valid) {
         return true;
@@ -62,6 +67,7 @@ export function useOTP(): UseOTPReturn {
         return false;
       }
     } catch (err) {
+      console.error('Error al verificar OTP:', err);
       setError('Error de conexión con el servidor');
       return false;
     } finally {
