@@ -40,44 +40,37 @@ class SMTPEmailService(EmailService):
         }
         return purpose_messages.get(purpose, "autenticación")
 
-    def _create_email_body(self, otp_code: str, purpose: OTPPurpose) -> tuple[str, str]:
-        """Crea el cuerpo del email en texto plano y HTML."""
-        purpose_message = self._get_purpose_message(purpose)
-        
-        plain_text = f"""
-Código de verificación GOAT
+    def _create_plain_text_body(self, otp_code: str, purpose_message: str) -> str:
+        """Crea el cuerpo del email en texto plano."""
+        expiration = self._settings.otp_expiration_minutes
+        return f"""Código de verificación GOAT
 
 Tu código de verificación para {purpose_message} es:
 
 {otp_code}
 
-Este código expira en {self._settings.otp_expiration_minutes} minutos.
+Este código expira en {expiration} minutos.
 
-Si no solicitaste este código, ignora este mensaje.
-        """.strip()
+Si no solicitaste este código, ignora este mensaje."""
 
-        html_content = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {{
+    def _get_html_styles(self) -> str:
+        """Retorna los estilos CSS para el email HTML."""
+        return """
+        body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             color: #333;
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
-        }}
-        .container {{
+        }
+        .container {
             background-color: #f9f9f9;
             border-radius: 8px;
             padding: 30px;
             margin: 20px 0;
-        }}
-        .otp-code {{
+        }
+        .otp-code {
             font-size: 32px;
             font-weight: bold;
             text-align: center;
@@ -87,14 +80,26 @@ Si no solicitaste este código, ignora este mensaje.
             padding: 20px;
             border-radius: 6px;
             margin: 20px 0;
-        }}
-        .footer {{
+        }
+        .footer {
             margin-top: 30px;
             padding-top: 20px;
             border-top: 1px solid #ddd;
             font-size: 12px;
             color: #666;
-        }}
+        }"""
+
+    def _create_html_body(self, otp_code: str, purpose_message: str) -> str:
+        """Crea el cuerpo del email en formato HTML."""
+        expiration = self._settings.otp_expiration_minutes
+        styles = self._get_html_styles()
+        
+        return f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>{styles}
     </style>
 </head>
 <body>
@@ -102,16 +107,20 @@ Si no solicitaste este código, ignora este mensaje.
         <h2>Código de verificación GOAT</h2>
         <p>Tu código de verificación para {purpose_message} es:</p>
         <div class="otp-code">{otp_code}</div>
-        <p>Este código expira en <strong>{self._settings.otp_expiration_minutes} minutos</strong>.</p>
+        <p>Este código expira en <strong>{expiration} minutos</strong>.</p>
         <p>Si no solicitaste este código, ignora este mensaje.</p>
     </div>
     <div class="footer">
         <p>Este es un mensaje automático, por favor no respondas a este correo.</p>
     </div>
 </body>
-</html>
-        """.strip()
+</html>"""
 
+    def _create_email_body(self, otp_code: str, purpose: OTPPurpose) -> tuple[str, str]:
+        """Crea el cuerpo del email en texto plano y HTML."""
+        purpose_message = self._get_purpose_message(purpose)
+        plain_text = self._create_plain_text_body(otp_code, purpose_message)
+        html_content = self._create_html_body(otp_code, purpose_message)
         return plain_text, html_content
 
     async def send_otp_email(
