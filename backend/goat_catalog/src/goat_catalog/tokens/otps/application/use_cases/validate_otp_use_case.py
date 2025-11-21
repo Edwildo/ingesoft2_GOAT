@@ -15,7 +15,6 @@ from ...domain.repositories.otp_repository import OTPRepository
 from ...domain.value_objects.email import Email
 from ...domain.value_objects.otp_purpose import OTPPurpose
 
-# Agregar src al path para importaciones absolutas
 src_path = Path(__file__).parent.parent.parent.parent.parent
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))

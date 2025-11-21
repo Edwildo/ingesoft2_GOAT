@@ -9,6 +9,7 @@ passlib[bcrypt]>=1.7.4
 aiofiles>=24.0.0
 python-multipart>=0.0.20
 aiosmtplib>=3.0.0
+slowapi>=0.1.9
 
 # Testing
 pytest>=7.4.4

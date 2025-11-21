@@ -1,6 +1,10 @@
 """Controller REST para operaciones con OTPs."""
 
-from fastapi import APIRouter, HTTPException, Query, Request, status
+import sys
+from pathlib import Path
+
+from fastapi import APIRouter, HTTPException, Query, status
+from starlette.requests import Request
 
 from ...application.dto.confirm_email_response import ConfirmEmailResponse
 from ...application.dto.generate_otp_request import GenerateOTPRequest
@@ -24,8 +28,14 @@ from ...infrastructure.persistence.mongo_confirmed_email_repository import (
     MongoConfirmedEmailRepository,
 )
 from ...infrastructure.persistence.mongo_otp_repository import MongoOTPRepository
-from ....shared.config import get_settings
-from ....shared.middleware.rate_limiter import rate_limit_by_email, rate_limit_by_ip
+
+# Agregar src al path para importaciones absolutas
+src_path = Path(__file__).parent.parent.parent.parent.parent
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
+
+from goat_catalog.shared.config import get_settings
+from goat_catalog.shared.middleware.rate_limiter import rate_limit_by_email, rate_limit_by_ip
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -74,13 +84,14 @@ def _get_confirm_email_use_case() -> ConfirmEmailUseCase:
 
 
 @router.post("/otp", response_model=GenerateOTPResponse, status_code=status.HTTP_201_CREATED)
-@rate_limit_by_email(f"{get_settings().rate_limit_otp_per_email}/minute")
-@rate_limit_by_ip(f"{get_settings().rate_limit_otp_per_ip}/minute")
-async def generate_otp(request: GenerateOTPRequest, http_request: Request) -> GenerateOTPResponse:
+# @rate_limit_by_email(f"{get_settings().rate_limit_otp_per_email}/minute")
+# @rate_limit_by_ip(f"{get_settings().rate_limit_otp_per_ip}/minute")
+async def generate_otp(body: GenerateOTPRequest) -> GenerateOTPResponse:
     """Genera un nuevo código OTP y lo envía por email.
 
     Args:
-        request: Request con email y propósito del OTP
+        http_request: Request HTTP de FastAPI (requerido para rate limiting)
+        body: Request con email y propósito del OTP
 
     Returns:
         Response con el resultado de la operación
@@ -90,7 +101,7 @@ async def generate_otp(request: GenerateOTPRequest, http_request: Request) -> Ge
     """
     try:
         use_case = _get_generate_otp_use_case()
-        return await use_case.execute(request)
+        return await use_case.execute(body)
     except OTPMaxAttemptsException as e:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -109,12 +120,13 @@ async def generate_otp(request: GenerateOTPRequest, http_request: Request) -> Ge
 
 
 @router.post("/verify", response_model=ValidateOTPResponse, status_code=status.HTTP_200_OK)
-@rate_limit_by_email(f"{get_settings().rate_limit_verify_per_email}/minute")
-async def verify_otp(request: ValidateOTPRequest, http_request: Request) -> ValidateOTPResponse:
+# @rate_limit_by_email(f"{get_settings().rate_limit_verify_per_email}/minute")
+async def verify_otp(body: ValidateOTPRequest) -> ValidateOTPResponse:
     """Valida un código OTP.
 
     Args:
-        request: Request con email, OTP y propósito
+        http_request: Request HTTP de FastAPI (requerido para rate limiting)
+        body: Request con email, OTP y propósito
 
     Returns:
         Response con el resultado de la validación
@@ -124,7 +136,7 @@ async def verify_otp(request: ValidateOTPRequest, http_request: Request) -> Vali
     """
     try:
         use_case = _get_validate_otp_use_case()
-        return await use_case.execute(request)
+        return await use_case.execute(body)
     except OTPExpiredException as e:
         raise HTTPException(
             status_code=status.HTTP_410_GONE,

@@ -3,10 +3,10 @@
 from functools import lru_cache
 from typing import Callable
 
-from fastapi import Request
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from starlette.requests import Request
 
 from ..config import get_settings
 
@@ -17,7 +17,7 @@ def get_client_identifier(request: Request) -> str:
     Prioriza IP del cliente. En producción, considerar usar API keys o tokens.
     
     Args:
-        request: Request de FastAPI
+        request: Request de Starlette/FastAPI
         
     Returns:
         String identificador único del cliente
@@ -34,7 +34,7 @@ def get_email_identifier(request: Request) -> str:
     se implementa mediante validación en el use case.
     
     Args:
-        request: Request de FastAPI
+        request: Request de Starlette/FastAPI
         
     Returns:
         IP del cliente (email se valida en use case)
@@ -66,8 +66,9 @@ def configure_rate_limiter(app) -> None:
     Args:
         app: Instancia de FastAPI
     """
+    # En slowapi, simplemente asignamos el limiter al app.state
+    # No hay método init_app() como en Flask-Limiter
     limiter = get_limiter()
-    limiter.init_app(app)
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -99,4 +100,3 @@ def rate_limit_by_ip(limit: str) -> Callable:
     """
     limiter = get_limiter()
     return limiter.limit(limit, key_func=get_client_identifier)
-
