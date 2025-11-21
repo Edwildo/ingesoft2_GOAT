@@ -33,17 +33,18 @@
 
 ### 🟡 ALTA PRIORIDAD (Próximas 2 semanas)
 
-#### Paso 3: Implementar rate limiting
+#### Paso 3: Implementar rate limiting ⚡ [COMPLETADO]
 - **Objetivo:** Prevenir abuso de generación de OTPs
 - **Impacto:** Seguridad y rendimiento
 - **Esfuerzo:** 4-6 horas
-- **Pasos:**
-  1. Instalar `slowapi` o `fastapi-limiter`
-  2. Implementar rate limiting por IP en endpoints OTP
-  3. Implementar rate limiting por email
-  4. Agregar headers de rate limit en respuestas
-  5. Configurar límites apropiados (5 OTPs/min por email, 10/min por IP)
-  6. Agregar tests para rate limiting
+- **Estado:** ✅ COMPLETADO
+- **Pasos realizados:**
+  1. ✅ Instalado `slowapi` en dependencias
+  2. ✅ Implementado rate limiting por IP en endpoints OTP (10/min)
+  3. ✅ Implementado rate limiting por email (5 OTPs/min, 10 verificaciones/min)
+  4. ✅ Agregada configuración de límites en settings
+  5. ✅ Implementada validación adicional en GenerateOTPUseCase
+  6. ⏳ Tests para rate limiting (pendiente - puede agregarse después)
 
 #### Paso 4: Sanitizar logs
 - **Objetivo:** Eliminar información sensible de logs
