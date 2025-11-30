@@ -102,6 +102,7 @@
   /* Z-Index */
   --theme-z-index-base: 0;
   --theme-z-index-dropdown: 1000;
+  --theme-z-index-navbar: 1010;
   --theme-z-index-sticky: 1020;
   --theme-z-index-fixed: 1030;
   --theme-z-index-modal-backdrop: 1040;

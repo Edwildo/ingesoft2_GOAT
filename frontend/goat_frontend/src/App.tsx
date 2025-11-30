@@ -6,6 +6,12 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { VerifyOTPPage } from './pages/auth/VerifyOTPPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
+import { ShopPage } from './pages/shop/ShopPage';
+import { ListingDetailPage } from './pages/shop/ListingDetailPage';
+import { MyListingsPage } from './pages/seller/MyListingsPage';
+import { CreateListingPage } from './pages/seller/CreateListingPage';
+import { EditListingPage } from './pages/seller/EditListingPage';
+import { Navbar } from './components/common/Navbar';
 import { Loading } from './components/common/Loading';
 import './styles/theme.css';
 import './styles/globals.css';
@@ -20,6 +26,25 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Componente para proteger rutas de seller (requiere autenticación + rol SELLER)
+const SellerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  if (isLoading) {
+    return <Loading fullScreen message="Cargando..." />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (!user?.roles?.includes('SELLER')) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -42,50 +67,79 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route
-        path="/register"
-        element={
-          <PublicRoute>
-            <RegisterPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <LoginPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/verify-otp"
-        element={
-          <PublicRoute>
-            <VerifyOTPPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/reset-password"
-        element={
-          <PublicRoute>
-            <ResetPasswordPage />
-          </PublicRoute>
-        }
-      />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+    <>
+      <Navbar />
+      <Routes>
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/verify-otp"
+          element={
+            <PublicRoute>
+              <VerifyOTPPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <PublicRoute>
+              <ResetPasswordPage />
+            </PublicRoute>
+          }
+        />
+        <Route path="/shop" element={<ShopPage />} />
+        <Route path="/shop/:id" element={<ListingDetailPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/seller/listings"
+          element={
+            <SellerRoute>
+              <MyListingsPage />
+            </SellerRoute>
+          }
+        />
+        <Route
+          path="/seller/listings/new"
+          element={
+            <SellerRoute>
+              <CreateListingPage />
+            </SellerRoute>
+          }
+        />
+        <Route
+          path="/seller/listings/:id/edit"
+          element={
+            <SellerRoute>
+              <EditListingPage />
+            </SellerRoute>
+          }
+        />
+        <Route path="/" element={<Navigate to="/shop" replace />} />
+        <Route path="*" element={<Navigate to="/shop" replace />} />
+      </Routes>
+    </>
   );
 }
 

@@ -23,11 +23,11 @@ public class VerifyOtpUseCase {
     }
 
     public VerifyOtpResponse execute(VerifyOtpRequest request) {
-        Email email = Email.of(request.getEmail());
-        boolean isValid = otpValidationPort.validateOtp(email, request.getOtp(), request.getPurpose());
+        Email email = Email.of(request.email());
+        boolean isValid = otpValidationPort.validateOtp(email, request.otp(), request.purpose());
 
         if (isValid) {
-            if ("EMAIL_CONFIRMATION".equals(request.getPurpose())) {
+            if ("EMAIL_CONFIRMATION".equals(request.purpose())) {
                 userRepository.findByEmail(email).ifPresent(user -> {
                     if (!user.getEmailConfirmed()) {
                         user.setEmailConfirmed(true);

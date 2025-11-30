@@ -16,11 +16,10 @@ export const RegisterPage: React.FC = () => {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSeller, setIsSeller] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [step, setStep] = useState<'register' | 'verify'>('register');
-  const [userId, setUserId] = useState<string | null>(null);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -50,16 +49,17 @@ export const RegisterPage: React.FC = () => {
     setMessage(null);
 
     try {
+      // Preparar roles si el usuario seleccionó SELLER
+      const roles = isSeller ? ['SELLER'] : undefined;
+      
       // Registrar usuario
-      const registerResult = await register(email, password);
+      const registerResult = await register(email, password, roles);
       
       if (!registerResult.success) {
         setMessage({ type: 'error', text: registerResult.message });
         setIsLoading(false);
         return;
       }
-
-      setUserId(registerResult.userId || null);
 
       // Generar OTP
       const otpResult = await authService.generateOTP({
@@ -76,11 +76,6 @@ export const RegisterPage: React.FC = () => {
         return;
       }
 
-      setMessage({
-        type: 'success',
-        text: `Código OTP enviado a ${email}. Por favor, ingrésalo para confirmar tu email.`,
-      });
-      setStep('verify');
       // Marcar que el OTP ya fue generado para evitar duplicados
       navigate('/verify-otp', { 
         state: { 
@@ -90,7 +85,11 @@ export const RegisterPage: React.FC = () => {
         } 
       });
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error de conexión con el servidor' });
+      console.error('Error en registro:', error);
+      setMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Error de conexión con el servidor' 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -136,6 +135,23 @@ export const RegisterPage: React.FC = () => {
               showStrengthIndicator
               autoComplete="new-password"
             />
+
+            <div className={styles.roleSelection}>
+              <label className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={isSeller}
+                  onChange={(e) => setIsSeller(e.target.checked)}
+                  className={styles.checkbox}
+                />
+                <span className={styles.checkboxText}>
+                  Quiero ser vendedor (SELLER)
+                </span>
+              </label>
+              <p className={styles.roleHelper}>
+                Los vendedores pueden crear y gestionar listings de sneakers
+              </p>
+            </div>
 
             <Button
               type="submit"

@@ -3,6 +3,7 @@ export type OTPPurpose = 'REGISTER' | 'LOGIN' | 'EMAIL_CONFIRMATION' | 'RESET_PA
 export interface RegisterRequest {
   email: string;
   password: string;
+  roles?: string[];
 }
 
 export interface RegisterResponse {

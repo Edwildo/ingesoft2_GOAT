@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authService } from '../api/auth.service';
 import { authStorage } from '../utils/storage';
-import { User, LoginRequest, RegisterRequest, AuthState } from '../types/auth.types';
+import { User, RegisterRequest, AuthState } from '../types/auth.types';
 import { ApiResponse } from '../types/api.types';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
-  register: (email: string, password: string) => Promise<{ success: boolean; message: string; userId?: string }>;
+  register: (email: string, password: string, roles?: string[]) => Promise<{ success: boolean; message: string; userId?: string }>;
   logout: () => void;
   checkAuth: () => void;
 }
@@ -77,11 +77,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = useCallback(async (
     email: string,
-    password: string
+    password: string,
+    roles?: string[]
   ): Promise<{ success: boolean; message: string; userId?: string }> => {
     try {
+      const registerData: RegisterRequest = { email, password };
+      if (roles && roles.length > 0) {
+        registerData.roles = roles;
+      }
+      
       const response: ApiResponse<{ id: string; email: string; emailConfirmed: boolean; isActive: boolean }> = 
-        await authService.register({ email, password });
+        await authService.register(registerData);
       
       if (response.success && response.data) {
         return {

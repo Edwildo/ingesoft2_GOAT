@@ -1,0 +1,91 @@
+.container {
+  position: relative;
+  width: 100%;
+}
+
+.loading {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  padding: var(--theme-spacing-sm);
+  background-color: var(--theme-color-white);
+  border: var(--theme-border-width-thin) solid var(--theme-color-gray-300);
+  border-top: none;
+  border-radius: 0 0 var(--theme-border-radius-md) var(--theme-border-radius-md);
+  font-size: var(--theme-font-size-sm);
+  font-family: var(--theme-font-sans);
+  color: var(--theme-color-gray-600);
+  z-index: 1000;
+}
+
+.suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  background-color: var(--theme-color-white);
+  border: var(--theme-border-width-thin) solid var(--theme-color-gray-300);
+  border-top: none;
+  border-radius: 0 0 var(--theme-border-radius-md) var(--theme-border-radius-md);
+  box-shadow: var(--theme-shadow-lg);
+  z-index: 1000;
+  margin-top: -1px;
+}
+
+.suggestionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--theme-spacing-md);
+  cursor: pointer;
+  transition: background-color var(--theme-transition-base);
+  border-bottom: var(--theme-border-width-thin) solid var(--theme-color-gray-200);
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
+}
+
+.suggestionItem:hover,
+.suggestionItem.selected {
+  background-color: var(--theme-color-gray-100);
+}
+
+.suggestionContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--theme-spacing-xs);
+}
+
+.suggestionBrand {
+  font-family: var(--theme-font-serif);
+  font-size: var(--theme-font-size-base);
+  font-weight: var(--theme-font-weight-semibold);
+  color: var(--theme-color-gray-900);
+}
+
+.suggestionModel {
+  font-family: var(--theme-font-sans);
+  font-size: var(--theme-font-size-sm);
+  color: var(--theme-color-gray-700);
+}
+
+.suggestionSku {
+  font-family: var(--theme-font-mono);
+  font-size: var(--theme-font-size-xs);
+  color: var(--theme-color-gray-500);
+}
+
+.suggestionImage {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border: var(--theme-border-width-thin) solid var(--theme-color-gray-300);
+  border-radius: var(--theme-border-radius-sm);
+  margin-left: var(--theme-spacing-md);
+}
+

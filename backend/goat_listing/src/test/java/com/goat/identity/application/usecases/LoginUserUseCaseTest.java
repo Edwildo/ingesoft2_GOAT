@@ -117,13 +117,13 @@ class LoginUserUseCaseTest {
 
         // Assert
         assertNotNull(response);
-        assertEquals("jwt-token-12345", response.getToken());
-        assertEquals(userEmail, response.getEmail());
-        assertEquals(userId, response.getUserId());
-        assertNotNull(response.getRoles());
-        assertEquals(2, response.getRoles().size());
-        assertTrue(response.getRoles().contains("BUYER"));
-        assertTrue(response.getRoles().contains("CLIENT"));
+        assertEquals("jwt-token-12345", response.token());
+        assertEquals(userEmail, response.email());
+        assertEquals(userId, response.userId());
+        assertNotNull(response.roles());
+        assertEquals(2, response.roles().size());
+        assertTrue(response.roles().contains("BUYER"));
+        assertTrue(response.roles().contains("CLIENT"));
 
         // Verificar que se llamaron los métodos correctos
         verify(userRepository, times(1)).findByEmail(Email.of(userEmail));

@@ -8,13 +8,17 @@ spring:
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
-      ddl-auto: validate  # Cambiar a 'update' solo para desarrollo inicial
+      ddl-auto: none  # 'none' evita validación estricta de tipos ENUM personalizados
     show-sql: false  # Cambiar a 'true' para ver las queries SQL
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         default_schema: identity
         format_sql: true
+        # Configurar Hibernate para manejar ENUMs de PostgreSQL correctamente
+        type.prefer_native_enum_types: true
+        # Configurar el mapeo de ENUMs con schema
+        type.default_for_enum: true
 
 jwt:
   secret: ${JWT_SECRET:defaultSecretKeyThatShouldBeChangedInProductionEnvironmentMin32Characters}

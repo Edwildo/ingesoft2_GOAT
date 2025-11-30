@@ -1,0 +1,92 @@
+.navbar {
+  background-color: var(--theme-color-white);
+  border-bottom: var(--theme-border-width-base) solid var(--theme-color-gray-900);
+  padding: var(--theme-spacing-md) 0;
+  position: sticky;
+  top: 0;
+  z-index: var(--theme-z-index-navbar);
+  box-shadow: var(--theme-shadow-sm);
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--theme-spacing-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  text-decoration: none;
+  color: inherit;
+}
+
+.logoText {
+  font-family: var(--theme-font-serif);
+  font-size: var(--theme-font-size-2xl);
+  font-weight: var(--theme-font-weight-bold);
+  color: var(--theme-color-gray-900);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: var(--theme-letter-spacing-wider);
+}
+
+.menu {
+  display: flex;
+  align-items: center;
+  gap: var(--theme-spacing-lg);
+}
+
+.menuItem {
+  font-family: var(--theme-font-sans);
+  font-size: var(--theme-font-size-base);
+  font-weight: var(--theme-font-weight-medium);
+  color: var(--theme-color-gray-700);
+  text-decoration: none;
+  transition: color var(--theme-transition-base);
+  padding: var(--theme-spacing-xs) 0;
+  border-bottom: var(--theme-border-width-thin) solid transparent;
+}
+
+.menuItem:hover {
+  color: var(--theme-color-gray-900);
+  border-bottom-color: var(--theme-color-gray-900);
+}
+
+.userMenu {
+  display: flex;
+  align-items: center;
+  gap: var(--theme-spacing-md);
+  padding-left: var(--theme-spacing-lg);
+  border-left: var(--theme-border-width-thin) solid var(--theme-color-gray-300);
+}
+
+.userEmail {
+  font-family: var(--theme-font-sans);
+  font-size: var(--theme-font-size-sm);
+  color: var(--theme-color-gray-600);
+}
+
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+    gap: var(--theme-spacing-md);
+  }
+  
+  .menu {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--theme-spacing-sm);
+  }
+  
+  .userMenu {
+    border-left: none;
+    border-top: var(--theme-border-width-thin) solid var(--theme-color-gray-300);
+    padding-left: 0;
+    padding-top: var(--theme-spacing-md);
+    width: 100%;
+    justify-content: center;
+  }
+}
+

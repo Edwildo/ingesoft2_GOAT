@@ -17,8 +17,8 @@ public class GenerateOtpUseCase {
     }
 
     public GenerateOtpResponse execute(GenerateOtpRequest request) {
-        Email email = Email.of(request.getEmail());
-        boolean success = otpGenerationPort.generateOtp(email, request.getPurpose());
+        Email email = Email.of(request.email());
+        boolean success = otpGenerationPort.generateOtp(email, request.purpose());
 
         if (success) {
             return new GenerateOtpResponse(

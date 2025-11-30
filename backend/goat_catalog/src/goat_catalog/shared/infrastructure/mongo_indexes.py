@@ -123,3 +123,120 @@ async def verify_otp_indexes(database: AsyncIOMotorDatabase) -> dict[str, bool]:
         logger.error(f"Error verificando índices: {type(e).__name__}: {e}")
         return {name: False for name in required_indexes.keys()}
 
+
+async def initialize_catalog_indexes(database: AsyncIOMotorDatabase) -> bool:
+    """Inicializa todos los índices necesarios para las colecciones del catálogo.
+    
+    Args:
+        database: Instancia de la base de datos MongoDB
+        
+    Returns:
+        True si todos los índices se crearon correctamente, False en caso contrario
+    """
+    indexes_created = []
+
+    # ===== Índices para catalog.sneakers =====
+    sneakers_collection = database["catalog.sneakers"]
+    
+    # Índice único en SKU (crítico para validación)
+    success = await create_index_safe(
+        collection=sneakers_collection,
+        index_spec="sku",
+        index_name="sku_unique",
+        description="Índice único en 'sku' para sneakers",
+        unique=True,
+    )
+    indexes_created.append(success)
+
+    # Índice en brand para búsquedas
+    success = await create_index_safe(
+        collection=sneakers_collection,
+        index_spec="brand",
+        index_name="brand_index",
+        description="Índice en 'brand' para búsquedas por marca",
+    )
+    indexes_created.append(success)
+
+    # Índice en gender para filtros
+    success = await create_index_safe(
+        collection=sneakers_collection,
+        index_spec="gender",
+        index_name="gender_index",
+        description="Índice en 'gender' para filtros",
+    )
+    indexes_created.append(success)
+
+    # Índice en categories (array) para búsquedas
+    success = await create_index_safe(
+        collection=sneakers_collection,
+        index_spec="categories",
+        index_name="categories_index",
+        description="Índice en 'categories' para búsquedas",
+    )
+    indexes_created.append(success)
+
+    # Índice en collections (array) para búsquedas
+    success = await create_index_safe(
+        collection=sneakers_collection,
+        index_spec="collections",
+        index_name="collections_index",
+        description="Índice en 'collections' para búsquedas",
+    )
+    indexes_created.append(success)
+
+    # Índice de texto para búsqueda en modelo y descripción
+    success = await create_index_safe(
+        collection=sneakers_collection,
+        index_spec=[("model", "text"), ("description", "text")],
+        index_name="text_search_index",
+        description="Índice de texto para búsqueda en modelo y descripción",
+    )
+    indexes_created.append(success)
+
+    # ===== Índices para catalog.brands =====
+    brands_collection = database["catalog.brands"]
+    
+    # Índice único en _id (ya es automático, pero por claridad)
+    # Índice en slug para búsquedas
+    success = await create_index_safe(
+        collection=brands_collection,
+        index_spec="slug",
+        index_name="slug_index",
+        description="Índice en 'slug' para búsquedas de marcas",
+        unique=True,
+    )
+    indexes_created.append(success)
+
+    # ===== Índices para catalog.categories =====
+    categories_collection = database["catalog.categories"]
+    
+    # Índice en slug para búsquedas
+    success = await create_index_safe(
+        collection=categories_collection,
+        index_spec="slug",
+        index_name="slug_index",
+        description="Índice en 'slug' para búsquedas de categorías",
+        unique=True,
+    )
+    indexes_created.append(success)
+
+    # ===== Índices para catalog.collections =====
+    collections_collection = database["catalog.collections"]
+    
+    # Índice en slug para búsquedas
+    success = await create_index_safe(
+        collection=collections_collection,
+        index_spec="slug",
+        index_name="slug_index",
+        description="Índice en 'slug' para búsquedas de colecciones",
+        unique=True,
+    )
+    indexes_created.append(success)
+
+    all_success = all(indexes_created)
+    if all_success:
+        logger.info("Todos los índices del catálogo fueron inicializados correctamente")
+    else:
+        logger.warning("Algunos índices del catálogo no pudieron ser creados")
+
+    return all_success

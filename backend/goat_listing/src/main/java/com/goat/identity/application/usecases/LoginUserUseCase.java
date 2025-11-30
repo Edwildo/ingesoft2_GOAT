@@ -34,7 +34,7 @@ public class LoginUserUseCase {
     }
 
     public LoginResponse execute(LoginRequest request) {
-        Email email = Email.of(request.getEmail());
+        Email email = Email.of(request.email());
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Credenciales inválidas"));
 
@@ -47,7 +47,7 @@ public class LoginUserUseCase {
         }
 
         boolean passwordMatches = passwordEncoder.matches(
-                request.getPassword(),
+                request.password(),
                 user.getPasswordHash().getValue()
         );
 
@@ -64,7 +64,7 @@ public class LoginUserUseCase {
         return new LoginResponse(
                 token,
                 user.getEmail().getValue(),
-                roleCodes,
+                List.copyOf(roleCodes), // Lista inmutable para el record
                 user.getId()
         );
     }

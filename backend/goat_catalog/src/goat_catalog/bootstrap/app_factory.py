@@ -7,7 +7,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from ..shared.config import get_settings
 from ..shared.config.database import Database, get_database
-from ..shared.infrastructure.mongo_indexes import initialize_otp_indexes
+from ..shared.infrastructure.mongo_indexes import (
+    initialize_catalog_indexes,
+    initialize_otp_indexes,
+)
 from ..shared.middleware.rate_limiter import configure_rate_limiter
 
 # Configurar logging
@@ -55,6 +58,7 @@ def create_app() -> FastAPI:
             await Database.connect()
             database = get_database()
             await initialize_otp_indexes(database)
+            await initialize_catalog_indexes(database)
         except Exception as e:
             logger.error(f"Error en startup: {type(e).__name__}. El servidor continuara funcionando.")
 

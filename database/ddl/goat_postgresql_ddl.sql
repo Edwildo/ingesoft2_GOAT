@@ -1,13 +1,45 @@
 -- ============================================================================
--- GOAT Project - PostgreSQL DDL
--- Database Schema for Java/Spring Boot
+-- Script para RECREAR la base de datos completa desde cero
+-- Elimina todo y lo recrea con status como VARCHAR en lugar de ENUM
 -- ============================================================================
---
--- Schemas:
---   - identity: Usuarios, roles y asignaciones (RBAC)
---   - navigation: Menús dinámicos públicos y por rol
---   - listing: Publicaciones de sellers (listings)
---
+
+-- ADVERTENCIA: Este script ELIMINA TODOS LOS DATOS
+-- Solo ejecuta esto si estás seguro de que quieres empezar de cero
+
+BEGIN;
+
+-- ============================================================================
+-- PASO 1: Eliminar todo lo existente
+-- ============================================================================
+
+-- Eliminar vistas primero (tienen dependencias)
+DROP VIEW IF EXISTS listing.vw_published_listings CASCADE;
+DROP VIEW IF EXISTS navigation.vw_menus_by_role CASCADE;
+DROP VIEW IF EXISTS identity.vw_users_with_roles CASCADE;
+
+-- Eliminar tablas
+DROP TABLE IF EXISTS listing.listings CASCADE;
+DROP TABLE IF EXISTS navigation.roles_menus CASCADE;
+DROP TABLE IF EXISTS navigation.menus CASCADE;
+DROP TABLE IF EXISTS identity.users_roles CASCADE;
+DROP TABLE IF EXISTS identity.roles CASCADE;
+DROP TABLE IF EXISTS identity.users CASCADE;
+
+-- Eliminar tipos ENUM
+DROP TYPE IF EXISTS listing.listing_status CASCADE;
+
+-- Eliminar schemas
+DROP SCHEMA IF EXISTS listing CASCADE;
+DROP SCHEMA IF EXISTS navigation CASCADE;
+DROP SCHEMA IF EXISTS identity CASCADE;
+
+-- Eliminar funciones
+DROP FUNCTION IF EXISTS identity.update_updated_at_column() CASCADE;
+
+COMMIT;
+
+-- ============================================================================
+-- PASO 2: Crear todo desde cero
 -- ============================================================================
 
 -- Extensiones necesarias
@@ -17,14 +49,20 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================================================
 -- SCHEMA: identity
 -- ============================================================================
--- Usuarios, roles y control de acceso basado en roles (RBAC)
 
 CREATE SCHEMA IF NOT EXISTS identity;
 COMMENT ON SCHEMA identity IS 'Identity and RBAC: usuarios, roles y asignaciones';
 
--- ----------------------------------------------------------------------------
+-- Función para updated_at
+CREATE OR REPLACE FUNCTION identity.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Tabla: users
--- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.users (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email           VARCHAR(255) NOT NULL UNIQUE,
@@ -36,10 +74,6 @@ CREATE TABLE IF NOT EXISTS identity.users (
 );
 
 COMMENT ON TABLE identity.users IS 'Usuarios del sistema (sellers y buyers)';
-COMMENT ON COLUMN identity.users.email IS 'Email único del usuario';
-COMMENT ON COLUMN identity.users.password_hash IS 'Hash de la contraseña (bcrypt/argon2)';
-COMMENT ON COLUMN identity.users.email_confirmed IS 'Indica si el email ha sido verificado';
-COMMENT ON COLUMN identity.users.is_active IS 'Indica si la cuenta está activa';
 
 -- Índices para users
 CREATE INDEX IF NOT EXISTS idx_users_email ON identity.users(email);
@@ -47,22 +81,12 @@ CREATE INDEX IF NOT EXISTS idx_users_is_active ON identity.users(is_active);
 CREATE INDEX IF NOT EXISTS idx_users_email_confirmed ON identity.users(email_confirmed);
 
 -- Trigger para updated_at
-CREATE OR REPLACE FUNCTION identity.update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
 CREATE TRIGGER trigger_users_updated_at
     BEFORE UPDATE ON identity.users
     FOR EACH ROW
     EXECUTE FUNCTION identity.update_updated_at_column();
 
--- ----------------------------------------------------------------------------
 -- Tabla: roles
--- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS identity.roles (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code        VARCHAR(40) NOT NULL UNIQUE,
@@ -72,16 +96,10 @@ CREATE TABLE IF NOT EXISTS identity.roles (
 );
 
 COMMENT ON TABLE identity.roles IS 'Roles del sistema (RBAC)';
-COMMENT ON COLUMN identity.roles.code IS 'Código único del rol: SUPER_ADMIN, SELLER, BUYER, SUPPORT, CLIENT';
-COMMENT ON COLUMN identity.roles.name IS 'Nombre descriptivo del rol';
-COMMENT ON COLUMN identity.roles.description IS 'Descripción opcional del rol';
 
--- Índices para roles
 CREATE UNIQUE INDEX IF NOT EXISTS idx_roles_code ON identity.roles(code);
 
--- ----------------------------------------------------------------------------
--- Tabla: users_roles (Many-to-Many)
--- ----------------------------------------------------------------------------
+-- Tabla: users_roles
 CREATE TABLE IF NOT EXISTS identity.users_roles (
     user_id     UUID NOT NULL,
     role_id     UUID NOT NULL,
@@ -93,23 +111,17 @@ CREATE TABLE IF NOT EXISTS identity.users_roles (
         REFERENCES identity.roles(id) ON DELETE CASCADE
 );
 
-COMMENT ON TABLE identity.users_roles IS 'Asignación de roles a usuarios (un usuario puede tener múltiples roles)';
-
--- Índices para users_roles
 CREATE INDEX IF NOT EXISTS idx_users_roles_user_id ON identity.users_roles(user_id);
 CREATE INDEX IF NOT EXISTS idx_users_roles_role_id ON identity.users_roles(role_id);
 
 -- ============================================================================
 -- SCHEMA: navigation
 -- ============================================================================
--- Menús dinámicos públicos y por rol
 
 CREATE SCHEMA IF NOT EXISTS navigation;
 COMMENT ON SCHEMA navigation IS 'Navegación dinámica: menús públicos y por rol';
 
--- ----------------------------------------------------------------------------
 -- Tabla: menus
--- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS navigation.menus (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     parent_id   UUID NULL,
@@ -124,29 +136,17 @@ CREATE TABLE IF NOT EXISTS navigation.menus (
         REFERENCES navigation.menus(id) ON DELETE CASCADE
 );
 
-COMMENT ON TABLE navigation.menus IS 'Menús y submenús del sistema (árbol jerárquico)';
-COMMENT ON COLUMN navigation.menus.parent_id IS 'ID del menú padre (NULL para raíz)';
-COMMENT ON COLUMN navigation.menus.name IS 'Nombre del menú';
-COMMENT ON COLUMN navigation.menus.route IS 'Ruta del frontend';
-COMMENT ON COLUMN navigation.menus.icon IS 'Icono del menú (opcional)';
-COMMENT ON COLUMN navigation.menus.menu_order IS 'Orden de visualización';
-COMMENT ON COLUMN navigation.menus.is_public IS 'Indica si el menú es público (accesible sin autenticación)';
-
--- Índices para menus
 CREATE INDEX IF NOT EXISTS idx_menus_parent_id ON navigation.menus(parent_id);
 CREATE INDEX IF NOT EXISTS idx_menus_is_public ON navigation.menus(is_public);
 CREATE INDEX IF NOT EXISTS idx_menus_menu_order ON navigation.menus(menu_order);
 CREATE INDEX IF NOT EXISTS idx_menus_route ON navigation.menus(route);
 
--- Trigger para updated_at
 CREATE TRIGGER trigger_menus_updated_at
     BEFORE UPDATE ON navigation.menus
     FOR EACH ROW
     EXECUTE FUNCTION identity.update_updated_at_column();
 
--- ----------------------------------------------------------------------------
--- Tabla: roles_menus (Many-to-Many)
--- ----------------------------------------------------------------------------
+-- Tabla: roles_menus
 CREATE TABLE IF NOT EXISTS navigation.roles_menus (
     role_id     UUID NOT NULL,
     menu_id     UUID NOT NULL,
@@ -158,33 +158,18 @@ CREATE TABLE IF NOT EXISTS navigation.roles_menus (
         REFERENCES navigation.menus(id) ON DELETE CASCADE
 );
 
-COMMENT ON TABLE navigation.roles_menus IS 'Asignación de menús a roles (control de visibilidad por rol)';
-
--- Índices para roles_menus
 CREATE INDEX IF NOT EXISTS idx_roles_menus_role_id ON navigation.roles_menus(role_id);
 CREATE INDEX IF NOT EXISTS idx_roles_menus_menu_id ON navigation.roles_menus(menu_id);
 
 -- ============================================================================
 -- SCHEMA: listing
 -- ============================================================================
--- Publicaciones de sellers (listings de sneakers)
 
 CREATE SCHEMA IF NOT EXISTS listing;
 COMMENT ON SCHEMA listing IS 'Listings: publicaciones de sellers con precio, talla y condición';
 
--- ----------------------------------------------------------------------------
--- Tipo ENUM: listing_status
--- ----------------------------------------------------------------------------
-DO $$ BEGIN
-    CREATE TYPE listing.listing_status AS ENUM ('DRAFT', 'PUBLISHED', 'ARCHIVED');
-EXCEPTION WHEN duplicate_object THEN NULL;
-END $$;
-
-COMMENT ON TYPE listing.listing_status IS 'Estados de un listing: DRAFT (borrador), PUBLISHED (publicado), ARCHIVED (archivado)';
-
--- ----------------------------------------------------------------------------
 -- Tabla: listings
--- ----------------------------------------------------------------------------
+-- IMPORTANTE: status es VARCHAR en lugar de ENUM
 CREATE TABLE IF NOT EXISTS listing.listings (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     seller_id     UUID NOT NULL,
@@ -195,26 +180,18 @@ CREATE TABLE IF NOT EXISTS listing.listings (
     brand         VARCHAR(60) NOT NULL,
     color         VARCHAR(40) NOT NULL,
     price         NUMERIC(12, 2) NOT NULL,
-    status        listing.listing_status NOT NULL DEFAULT 'DRAFT',
+    status        VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
     cover_image   VARCHAR(256),
     created_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_listings_seller FOREIGN KEY (seller_id)
         REFERENCES identity.users(id) ON DELETE RESTRICT,
-    CONSTRAINT chk_listings_price_positive CHECK (price > 0)
+    CONSTRAINT chk_listings_price_positive CHECK (price > 0),
+    CONSTRAINT check_listing_status CHECK (status IN ('DRAFT', 'PUBLISHED', 'ARCHIVED'))
 );
 
 COMMENT ON TABLE listing.listings IS 'Publicaciones de sellers (listings de sneakers)';
-COMMENT ON COLUMN listing.listings.seller_id IS 'Usuario seller que creó el listing';
-COMMENT ON COLUMN listing.listings.sneaker_sku IS 'SKU del sneaker en MongoDB (catálogo canónico)';
-COMMENT ON COLUMN listing.listings.size IS 'Talla del sneaker (catálogo fijo de tallas)';
-COMMENT ON COLUMN listing.listings.condition IS 'Condición: NEW, LIKE_NEW, USED_A, USED_B, etc.';
-COMMENT ON COLUMN listing.listings.gender IS 'Género: MEN, WOMEN, GS, UNISEX';
-COMMENT ON COLUMN listing.listings.brand IS 'Marca (redundante para filtros rápidos, evita lookup a Mongo)';
-COMMENT ON COLUMN listing.listings.color IS 'Color del sneaker';
-COMMENT ON COLUMN listing.listings.price IS 'Precio fijo (sin ofertas/bids en MVP)';
-COMMENT ON COLUMN listing.listings.status IS 'Estado del listing (DRAFT/PUBLISHED/ARCHIVED)';
-COMMENT ON COLUMN listing.listings.cover_image IS 'URL de la imagen de portada en S3';
+COMMENT ON COLUMN listing.listings.status IS 'Estado del listing (DRAFT/PUBLISHED/ARCHIVED) - VARCHAR con CHECK constraint';
 
 -- Índices para listings
 CREATE INDEX IF NOT EXISTS idx_listings_seller_id ON listing.listings(seller_id);
@@ -228,7 +205,6 @@ CREATE INDEX IF NOT EXISTS idx_listings_price ON listing.listings(price)
     WHERE status = 'PUBLISHED';
 CREATE INDEX IF NOT EXISTS idx_listings_created_at ON listing.listings(created_at DESC);
 
--- Trigger para updated_at
 CREATE TRIGGER trigger_listings_updated_at
     BEFORE UPDATE ON listing.listings
     FOR EACH ROW
@@ -247,14 +223,14 @@ INSERT INTO identity.roles (code, name, description) VALUES
     ('CLIENT', 'Cliente', 'Rol genérico de cliente')
 ON CONFLICT (code) DO NOTHING;
 
--- Menús públicos base (Home y Shop)
+-- Menús públicos base
 INSERT INTO navigation.menus (name, route, icon, menu_order, is_public) VALUES
     ('Home', '/', 'home', 1, true),
     ('Shop', '/shop', 'shop', 2, true)
 ON CONFLICT DO NOTHING;
 
 -- ============================================================================
--- VISTAS ÚTILES (Opcional, para consultas comunes)
+-- VISTAS ÚTILES
 -- ============================================================================
 
 -- Vista: usuarios con sus roles
@@ -293,6 +269,7 @@ GROUP BY m.id, m.parent_id, m.name, m.route, m.icon, m.menu_order, m.is_public;
 COMMENT ON VIEW navigation.vw_menus_by_role IS 'Vista de menús con roles permitidos agregados como array';
 
 -- Vista: listings publicados con información del seller
+-- IMPORTANTE: Sin cast explícito porque status es VARCHAR
 CREATE OR REPLACE VIEW listing.vw_published_listings AS
 SELECT
     l.id,
@@ -314,15 +291,46 @@ WHERE l.status = 'PUBLISHED' AND u.is_active = true;
 COMMENT ON VIEW listing.vw_published_listings IS 'Vista de listings publicados con información del seller';
 
 -- ============================================================================
--- GRANTS (Ajustar según usuario de aplicación)
--- ============================================================================
--- Ejemplo: GRANT USAGE ON SCHEMA identity, navigation, listing TO goat_app_user;
--- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA identity, navigation, listing TO goat_app_user;
--- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA identity, navigation, listing TO goat_app_user;
-
--- ============================================================================
--- FIN DEL DDL
+-- VERIFICACIÓN FINAL
 -- ============================================================================
 
+SELECT
+    'VERIFICACIÓN - Columna status:' as info,
+    column_name,
+    data_type,
+    udt_name,
+    character_maximum_length
+FROM information_schema.columns
+WHERE table_schema = 'listing'
+  AND table_name = 'listings'
+  AND column_name = 'status';
+-- Debe mostrar: data_type = 'character varying', udt_name = 'varchar'
 
-DELETE from identity.users where users.email = 'edwinpinilla125@gmail.com'
+SELECT
+    'VERIFICACIÓN - Constraint:' as info,
+    constraint_name,
+    check_clause
+FROM information_schema.check_constraints
+WHERE constraint_name = 'check_listing_status';
+
+SELECT
+    'VERIFICACIÓN - Vista:' as info,
+    COUNT(*) as existe
+FROM information_schema.views
+WHERE table_schema = 'listing'
+  AND table_name = 'vw_published_listings';
+
+SELECT
+    'VERIFICACIÓN - Roles creados:' as info,
+    COUNT(*) as total_roles
+FROM identity.roles;
+
+SELECT
+    'VERIFICACIÓN - Menús creados:' as info,
+    COUNT(*) as total_menus
+FROM navigation.menus;
+
+-- ============================================================================
+-- FIN DEL SCRIPT
+-- ============================================================================
+

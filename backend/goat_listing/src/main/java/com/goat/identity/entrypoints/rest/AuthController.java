@@ -86,14 +86,14 @@ public class AuthController {
     @PostMapping("/otp")
     public ResponseEntity<GenerateOtpResponse> generateOtp(@Valid @RequestBody GenerateOtpRequest request) {
         GenerateOtpResponse response = generateOtpUseCase.execute(request);
-        HttpStatus status = response.isSuccess() ? HttpStatus.CREATED : HttpStatus.INTERNAL_SERVER_ERROR;
+        HttpStatus status = response.success() ? HttpStatus.CREATED : HttpStatus.INTERNAL_SERVER_ERROR;
         return ResponseEntity.status(status).body(response);
     }
 
     @PostMapping("/verify")
     public ResponseEntity<VerifyOtpResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
         VerifyOtpResponse response = verifyOtpUseCase.execute(request);
-        HttpStatus status = response.isValid() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        HttpStatus status = response.valid() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
         return ResponseEntity.status(status).body(response);
     }
 }

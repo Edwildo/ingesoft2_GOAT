@@ -46,6 +46,47 @@
   line-height: var(--theme-line-height-relaxed);
 }
 
+.roleSelection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--theme-spacing-xs);
+  padding: var(--theme-spacing-md);
+  background-color: var(--theme-color-gray-100);
+  border: var(--theme-border-width-thin) solid var(--theme-color-gray-300);
+  border-radius: var(--theme-border-radius-md);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--theme-spacing-sm);
+  cursor: pointer;
+  font-family: var(--theme-font-sans);
+  font-size: var(--theme-font-size-base);
+  color: var(--theme-color-gray-900);
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--theme-color-gray-900);
+}
+
+.checkboxText {
+  font-weight: var(--theme-font-weight-medium);
+  user-select: none;
+}
+
+.roleHelper {
+  font-size: var(--theme-font-size-sm);
+  font-family: var(--theme-font-sans);
+  color: var(--theme-color-gray-600);
+  margin: 0;
+  margin-left: calc(18px + var(--theme-spacing-sm));
+  line-height: var(--theme-line-height-relaxed);
+}
+
 .submitButton {
   margin-top: var(--theme-spacing-md);
 }
