@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { listingService } from '../../api/listing.service';
-import { ListingCard } from '../../components/shop/ListingCard';
-import { Loading } from '../../components/common/Loading';
-import { Alert } from '../../components/common/Alert';
-import { ListingFilters, Listing } from '../../types/listing.types';
-import styles from './ShopPage.module.css';
+import React, { useState, useEffect } from "react";
+import { listingService } from "../../api/listing.service";
+import { ListingCard } from "../../components/shop/ListingCard";
+import { Loading } from "../../components/common/Loading";
+import { Alert } from "../../components/common/Alert";
+import { ListingFilters, Listing } from "../../types/listing.types";
+import styles from "./ShopPage.module.css";
 
 export const ShopPage: React.FC = () => {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -27,16 +27,17 @@ export const ShopPage: React.FC = () => {
 
     try {
       const response = await listingService.getListings(filters);
-      
+
       if (response.success && response.data) {
         setListings(response.data.listings);
         setTotal(response.data.total);
         setCurrentPage(response.data.page);
       } else {
-        setError(response.error?.message || 'Error al cargar listings');
+        setError(response.error?.message || "Error al cargar listings");
       }
     } catch (err) {
-      setError('Error de conexión con el servidor');
+      console.error("Load listings error:", err);
+      setError("Error de conexión con el servidor");
     } finally {
       setIsLoading(false);
     }
@@ -85,11 +86,11 @@ export const ShopPage: React.FC = () => {
                 >
                   Anterior
                 </button>
-                
+
                 <span className={styles.paginationInfo}>
                   Página {currentPage + 1} de {totalPages} ({total} resultados)
                 </span>
-                
+
                 <button
                   className={styles.paginationButton}
                   onClick={() => handlePageChange(currentPage + 1)}
@@ -105,4 +106,3 @@ export const ShopPage: React.FC = () => {
     </div>
   );
 };
-

@@ -1,7 +1,7 @@
-import { useState, useCallback } from 'react';
-import { authService } from '../api/auth.service';
-import { OTPPurpose } from '../types/auth.types';
-import { ApiResponse } from '../types/api.types';
+import { useState, useCallback } from "react";
+import { authService } from "../api/auth.service";
+import { OTPPurpose } from "../types/auth.types";
+import { ApiResponse } from "../types/api.types";
 
 export interface UseOTPReturn {
   otp: string;
@@ -15,65 +15,84 @@ export interface UseOTPReturn {
 }
 
 export function useOTP(): UseOTPReturn {
-  const [otp, setOtp] = useState<string>('');
+  const [otp, setOtp] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expiresInMinutes, setExpiresInMinutes] = useState<number | null>(null);
 
-  const generateOTP = useCallback(async (email: string, purpose: OTPPurpose): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response: ApiResponse<{ success: boolean; message: string; expiresInMinutes: number | null }> = 
-        await authService.generateOTP({ email, purpose });
-      
-      if (response.success && response.data) {
-        setExpiresInMinutes(response.data.expiresInMinutes);
-        return true;
-      } else {
-        setError(response.error?.message || 'Error al generar código OTP');
+  const generateOTP = useCallback(
+    async (email: string, purpose: OTPPurpose): Promise<boolean> => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response: ApiResponse<{
+          success: boolean;
+          message: string;
+          expiresInMinutes: number | null;
+        }> = await authService.generateOTP({ email, purpose });
+
+        if (response.success && response.data) {
+          setExpiresInMinutes(response.data.expiresInMinutes);
+          return true;
+        } else {
+          setError(response.error?.message || "Error al generar código OTP");
+          return false;
+        }
+      } catch (err) {
+        console.error("generateOTP error:", err);
+        setError("Error de conexión con el servidor");
+        return false;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const verifyOTP = useCallback(
+    async (email: string, purpose: OTPPurpose): Promise<boolean> => {
+      // Normalizar el OTP: solo números, exactamente 6 dígitos
+      const normalizedOTP = otp.replace(/\D/g, "").slice(0, 6);
+
+      if (!normalizedOTP || normalizedOTP.length !== 6) {
+        setError("El código OTP debe tener 6 dígitos");
         return false;
       }
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
 
-  const verifyOTP = useCallback(async (email: string, purpose: OTPPurpose): Promise<boolean> => {
-    // Normalizar el OTP: solo números, exactamente 6 dígitos
-    const normalizedOTP = otp.replace(/\D/g, '').slice(0, 6);
-    
-    if (!normalizedOTP || normalizedOTP.length !== 6) {
-      setError('El código OTP debe tener 6 dígitos');
-      return false;
-    }
+      setIsLoading(true);
+      setError(null);
 
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await authService.verifyOTP({ email, otp: normalizedOTP, purpose });
-      
-      if (response.success && response.data?.valid) {
-        return true;
-      } else {
-        setError(response.error?.message || response.data?.message || 'Código OTP inválido');
+      try {
+        const response = await authService.verifyOTP({
+          email,
+          otp: normalizedOTP,
+          purpose,
+        });
+
+        if (response.success && response.data?.valid) {
+          return true;
+        } else {
+          setError(
+            response.error?.message ||
+              response.data?.message ||
+              "Código OTP inválido"
+          );
+          return false;
+        }
+      } catch (err) {
+        console.error("verifyOTP error:", err);
+        setError("Error de conexión con el servidor");
         return false;
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      setError('Error de conexión con el servidor');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [otp]);
+    },
+    [otp]
+  );
 
   const reset = useCallback(() => {
-    setOtp('');
+    setOtp("");
     setError(null);
     setIsLoading(false);
     setExpiresInMinutes(null);
@@ -90,4 +109,3 @@ export function useOTP(): UseOTPReturn {
     reset,
   };
 }
-

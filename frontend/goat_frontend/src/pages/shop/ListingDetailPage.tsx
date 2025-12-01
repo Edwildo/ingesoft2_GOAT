@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { listingService } from '../../api/listing.service';
-import { catalogService } from '../../api/catalog.service';
-import { Card } from '../../components/common/Card';
-import { Button } from '../../components/common/Button';
-import { Loading } from '../../components/common/Loading';
-import { Alert } from '../../components/common/Alert';
-import { Listing } from '../../types/listing.types';
-import { Sneaker } from '../../types/catalog.types';
-import styles from './ListingDetailPage.module.css';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { listingService } from "../../api/listing.service";
+import { catalogService } from "../../api/catalog.service";
+import { Card } from "../../components/common/Card";
+import { Button } from "../../components/common/Button";
+import { Loading } from "../../components/common/Loading";
+import { Alert } from "../../components/common/Alert";
+import { Listing } from "../../types/listing.types";
+import { Sneaker } from "../../types/catalog.types";
+import styles from "./ListingDetailPage.module.css";
 
 export const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  
+
   const [listing, setListing] = useState<Listing | null>(null);
   const [sneaker, setSneaker] = useState<Sneaker | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -39,14 +39,15 @@ export const ListingDetailPage: React.FC = () => {
 
     try {
       const response = await listingService.getListingById(id);
-      
+
       if (response.success && response.data) {
         setListing(response.data);
       } else {
-        setError(response.error?.message || 'Error al cargar el listing');
+        setError(response.error?.message || "Error al cargar el listing");
       }
     } catch (err) {
-      setError('Error de conexión con el servidor');
+      console.error("Load listing error:", err);
+      setError("Error de conexión con el servidor");
     } finally {
       setIsLoading(false);
     }
@@ -62,24 +63,24 @@ export const ListingDetailPage: React.FC = () => {
       }
       // No mostramos error si falla, es opcional
     } catch (err) {
-      // Silencioso, la info del catalog es opcional
+      void err; // Silencioso
     }
   };
 
   const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
       minimumFractionDigits: 0,
     }).format(price);
   };
 
   const getConditionLabel = (condition: string): string => {
     const labels: Record<string, string> = {
-      NEW: 'Nuevo',
-      LIKE_NEW: 'Como nuevo',
-      USED: 'Usado',
-      FAIR: 'Regular',
+      NEW: "Nuevo",
+      LIKE_NEW: "Como nuevo",
+      USED: "Usado",
+      FAIR: "Regular",
     };
     return labels[condition] || condition;
   };
@@ -96,10 +97,8 @@ export const ListingDetailPage: React.FC = () => {
     return (
       <div className={styles.detailPage}>
         <div className={styles.container}>
-          <Alert variant="error">
-            {error || 'Listing no encontrado'}
-          </Alert>
-          <Button onClick={() => navigate('/shop')} variant="outline">
+          <Alert variant="error">{error || "Listing no encontrado"}</Alert>
+          <Button onClick={() => navigate("/shop")} variant="outline">
             Volver al Shop
           </Button>
         </div>
@@ -112,7 +111,7 @@ export const ListingDetailPage: React.FC = () => {
       <div className={styles.container}>
         <Button
           variant="outline"
-          onClick={() => navigate('/shop')}
+          onClick={() => navigate("/shop")}
           className={styles.backButton}
         >
           ← Volver al Shop
@@ -126,7 +125,8 @@ export const ListingDetailPage: React.FC = () => {
                 alt={`${listing.brand} ${listing.color}`}
                 className={styles.mainImage}
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/placeholder-sneaker.png';
+                  (e.target as HTMLImageElement).src =
+                    "/placeholder-sneaker.png";
                 }}
               />
             ) : (
@@ -134,7 +134,7 @@ export const ListingDetailPage: React.FC = () => {
                 <span>Sin imagen</span>
               </div>
             )}
-            
+
             {sneaker?.media?.gallery && sneaker.media.gallery.length > 0 && (
               <div className={styles.gallery}>
                 {sneaker.media.gallery.map((image, index) => (
@@ -152,17 +152,16 @@ export const ListingDetailPage: React.FC = () => {
           <div className={styles.infoSection}>
             <Card className={styles.infoCard}>
               <h1 className={styles.brand}>{listing.brand}</h1>
-              
-              {sneaker && (
-                <h2 className={styles.model}>{sneaker.model}</h2>
-              )}
+
+              {sneaker && <h2 className={styles.model}>{sneaker.model}</h2>}
 
               <div className={styles.details}>
                 <div className={styles.detailItem}>
                   <strong>Talla:</strong> {listing.size}
                 </div>
                 <div className={styles.detailItem}>
-                  <strong>Condición:</strong> {getConditionLabel(listing.condition)}
+                  <strong>Condición:</strong>{" "}
+                  {getConditionLabel(listing.condition)}
                 </div>
                 <div className={styles.detailItem}>
                   <strong>Género:</strong> {listing.gender}
@@ -181,7 +180,9 @@ export const ListingDetailPage: React.FC = () => {
 
               <div className={styles.priceSection}>
                 <span className={styles.priceLabel}>Precio</span>
-                <span className={styles.price}>{formatPrice(listing.price)}</span>
+                <span className={styles.price}>
+                  {formatPrice(listing.price)}
+                </span>
               </div>
 
               <Button
@@ -200,4 +201,3 @@ export const ListingDetailPage: React.FC = () => {
     </div>
   );
 };
-

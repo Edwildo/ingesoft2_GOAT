@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 
 export interface UseFormOptions<T> {
   initialValues: T;
@@ -11,7 +11,9 @@ export interface UseFormReturn<T> {
   errors: Partial<Record<keyof T, string>>;
   touched: Partial<Record<keyof T, boolean>>;
   isSubmitting: boolean;
-  handleChange: (name: keyof T) => (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleChange: (
+    name: keyof T
+  ) => (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleBlur: (name: keyof T) => () => void;
   handleSubmit: (e: React.FormEvent) => Promise<void>;
   setFieldValue: (name: keyof T, value: unknown) => void;
@@ -33,7 +35,7 @@ export function useForm<T extends Record<string, unknown>>({
     (name: keyof T) => (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value;
       setValues((prev) => ({ ...prev, [name]: value }));
-      
+
       // Limpiar error cuando el usuario empieza a escribir
       if (errors[name]) {
         setErrors((prev) => {
@@ -49,7 +51,7 @@ export function useForm<T extends Record<string, unknown>>({
   const handleBlur = useCallback(
     (name: keyof T) => () => {
       setTouched((prev) => ({ ...prev, [name]: true }));
-      
+
       if (validate) {
         const validationErrors = validate(values);
         if (validationErrors[name]) {
@@ -64,23 +66,26 @@ export function useForm<T extends Record<string, unknown>>({
     setValues((prev) => ({ ...prev, [name]: value }));
   }, []);
 
-  const setFieldError = useCallback((name: keyof T, error: string | undefined) => {
-    setErrors((prev) => {
-      if (error) {
-        return { ...prev, [name]: error };
-      }
-      const newErrors = { ...prev };
-      delete newErrors[name];
-      return newErrors;
-    });
-  }, []);
+  const setFieldError = useCallback(
+    (name: keyof T, error: string | undefined) => {
+      setErrors((prev) => {
+        if (error) {
+          return { ...prev, [name]: error };
+        }
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    },
+    []
+  );
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      
+
       setIsSubmitting(true);
-      
+
       // Validar todos los campos
       if (validate) {
         const validationErrors = validate(values);
@@ -96,11 +101,11 @@ export function useForm<T extends Record<string, unknown>>({
           return;
         }
       }
-      
+
       try {
         await onSubmit(values);
       } catch (error) {
-        // Error manejado por el componente que usa el hook
+        console.error("Form submission error:", error);
       } finally {
         setIsSubmitting(false);
       }
@@ -128,4 +133,3 @@ export function useForm<T extends Record<string, unknown>>({
     reset,
   };
 }
-

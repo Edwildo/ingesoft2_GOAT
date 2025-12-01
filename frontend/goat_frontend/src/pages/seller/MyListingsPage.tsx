@@ -47,6 +47,7 @@ export const MyListingsPage: React.FC = () => {
         setError(response.error?.message || "Error al cargar listings");
       }
     } catch (err) {
+      console.error("Load listings error:", err);
       setError("Error de conexión con el servidor");
     } finally {
       setIsLoading(false);
@@ -70,6 +71,7 @@ export const MyListingsPage: React.FC = () => {
         });
       }
     } catch (err) {
+      console.error("Publish listing error:", err);
       setMessage({ type: "error", text: "Error de conexión con el servidor" });
     }
   };
@@ -87,6 +89,7 @@ export const MyListingsPage: React.FC = () => {
         });
       }
     } catch (err) {
+      console.error("Archive listing error:", err);
       setMessage({ type: "error", text: "Error de conexión con el servidor" });
     }
   };

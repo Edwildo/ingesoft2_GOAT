@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { catalogService } from '../../../api/catalog.service';
-import { Sneaker } from '../../../types/catalog.types';
-import { Input } from '../../common/Input';
-import styles from './SkuAutocomplete.module.css';
+import React, { useState, useEffect, useRef } from "react";
+import { catalogService } from "../../../api/catalog.service";
+import { Sneaker } from "../../../types/catalog.types";
+import { Input } from "../../common/Input";
+import styles from "./SkuAutocomplete.module.css";
 
 export interface SkuAutocompleteProps {
   value: string;
@@ -28,13 +28,16 @@ export const SkuAutocomplete: React.FC<SkuAutocompleteProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
         setShowSuggestions(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -53,13 +56,16 @@ export const SkuAutocomplete: React.FC<SkuAutocompleteProps> = ({
   const searchSneakers = async (query: string) => {
     setIsLoading(true);
     try {
-      const response = await catalogService.searchSneakers({ search: query, size: 10 });
+      const response = await catalogService.searchSneakers({
+        search: query,
+        size: 10,
+      });
       if (response.success && response.data) {
         setSuggestions(response.data.sneakers);
         setShowSuggestions(response.data.sneakers.length > 0);
       }
     } catch (err) {
-      // Silencioso, el autocompletado es opcional
+      void err; // Silencioso, el autocompletado es opcional
     } finally {
       setIsLoading(false);
     }
@@ -76,16 +82,18 @@ export const SkuAutocomplete: React.FC<SkuAutocompleteProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showSuggestions || suggestions.length === 0) return;
 
-    if (e.key === 'ArrowDown') {
+    if (e.key === "ArrowDown") {
       e.preventDefault();
-      setSelectedIndex((prev) => (prev < suggestions.length - 1 ? prev + 1 : prev));
-    } else if (e.key === 'ArrowUp') {
+      setSelectedIndex((prev) =>
+        prev < suggestions.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setSelectedIndex((prev) => (prev > 0 ? prev - 1 : -1));
-    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+    } else if (e.key === "Enter" && selectedIndex >= 0) {
       e.preventDefault();
       handleSelect(suggestions[selectedIndex]);
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       setShowSuggestions(false);
     }
   };
@@ -125,7 +133,7 @@ export const SkuAutocomplete: React.FC<SkuAutocompleteProps> = ({
             <div
               key={sneaker.sku}
               className={`${styles.suggestionItem} ${
-                index === selectedIndex ? styles.selected : ''
+                index === selectedIndex ? styles.selected : ""
               }`}
               onClick={() => handleSelect(sneaker)}
               onMouseEnter={() => setSelectedIndex(index)}
@@ -149,4 +157,3 @@ export const SkuAutocomplete: React.FC<SkuAutocompleteProps> = ({
     </div>
   );
 };
-

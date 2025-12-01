@@ -48,7 +48,7 @@ export interface CreateListingRequest {
   coverImage: string;
 }
 
-export interface UpdateListingRequest extends Partial<CreateListingRequest> {}
+export type UpdateListingRequest = Partial<CreateListingRequest>;
 
 export interface MyListingsFilters {
   status?: ListingStatus;
