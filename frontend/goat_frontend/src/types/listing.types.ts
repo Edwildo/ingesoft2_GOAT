@@ -1,6 +1,6 @@
-export type ListingStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
-export type Condition = 'NEW' | 'LIKE_NEW' | 'USED' | 'FAIR';
-export type Gender = 'MALE' | 'FEMALE' | 'UNISEX';
+export type ListingStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
+export type Condition = "NEW" | "LIKE_NEW" | "USED" | "FAIR";
+export type Gender = "MALE" | "FEMALE" | "UNISEX";
 
 export interface Listing {
   id: string;
@@ -53,6 +53,5 @@ export interface UpdateListingRequest extends Partial<CreateListingRequest> {}
 export interface MyListingsFilters {
   status?: ListingStatus;
   page?: number;
-  size?: number;
+  pageSize?: number;
 }
-

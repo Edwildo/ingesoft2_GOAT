@@ -1,22 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { listingService } from '../../api/listing.service';
-import { Button } from '../../components/common/Button';
-import { Loading } from '../../components/common/Loading';
-import { Alert } from '../../components/common/Alert';
-import { Listing, ListingStatus, MyListingsFilters } from '../../types/listing.types';
-import styles from './MyListingsPage.module.css';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { listingService } from "../../api/listing.service";
+import { Button } from "../../components/common/Button";
+import { Loading } from "../../components/common/Loading";
+import { Alert } from "../../components/common/Alert";
+import {
+  Listing,
+  ListingStatus,
+  MyListingsFilters,
+} from "../../types/listing.types";
+import styles from "./MyListingsPage.module.css";
 
 export const MyListingsPage: React.FC = () => {
   const navigate = useNavigate();
-  
+
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [message, setMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
   const [filters, setFilters] = useState<MyListingsFilters>({
     page: 0,
-    size: 20,
+    pageSize: 20,
   });
   const [total, setTotal] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
@@ -31,16 +38,16 @@ export const MyListingsPage: React.FC = () => {
 
     try {
       const response = await listingService.getMyListings(filters);
-      
+
       if (response.success && response.data) {
         setListings(response.data.listings);
         setTotal(response.data.total);
         setCurrentPage(response.data.page);
       } else {
-        setError(response.error?.message || 'Error al cargar listings');
+        setError(response.error?.message || "Error al cargar listings");
       }
     } catch (err) {
-      setError('Error de conexión con el servidor');
+      setError("Error de conexión con el servidor");
     } finally {
       setIsLoading(false);
     }
@@ -54,13 +61,16 @@ export const MyListingsPage: React.FC = () => {
     try {
       const response = await listingService.publishListing(id);
       if (response.success) {
-        setMessage({ type: 'success', text: 'Listing publicado exitosamente' });
+        setMessage({ type: "success", text: "Listing publicado exitosamente" });
         loadListings();
       } else {
-        setMessage({ type: 'error', text: response.error?.message || 'Error al publicar listing' });
+        setMessage({
+          type: "error",
+          text: response.error?.message || "Error al publicar listing",
+        });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: 'Error de conexión con el servidor' });
+      setMessage({ type: "error", text: "Error de conexión con el servidor" });
     }
   };
 
@@ -68,29 +78,32 @@ export const MyListingsPage: React.FC = () => {
     try {
       const response = await listingService.archiveListing(id);
       if (response.success) {
-        setMessage({ type: 'success', text: 'Listing archivado exitosamente' });
+        setMessage({ type: "success", text: "Listing archivado exitosamente" });
         loadListings();
       } else {
-        setMessage({ type: 'error', text: response.error?.message || 'Error al archivar listing' });
+        setMessage({
+          type: "error",
+          text: response.error?.message || "Error al archivar listing",
+        });
       }
     } catch (err) {
-      setMessage({ type: 'error', text: 'Error de conexión con el servidor' });
+      setMessage({ type: "error", text: "Error de conexión con el servidor" });
     }
   };
 
   const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('es-CO', {
-      style: 'currency',
-      currency: 'COP',
+    return new Intl.NumberFormat("es-CO", {
+      style: "currency",
+      currency: "COP",
       minimumFractionDigits: 0,
     }).format(price);
   };
 
   const getStatusLabel = (status: ListingStatus): string => {
     const labels: Record<ListingStatus, string> = {
-      DRAFT: 'Borrador',
-      PUBLISHED: 'Publicado',
-      ARCHIVED: 'Archivado',
+      DRAFT: "Borrador",
+      PUBLISHED: "Publicado",
+      ARCHIVED: "Archivado",
     };
     return labels[status];
   };
@@ -106,7 +119,7 @@ export const MyListingsPage: React.FC = () => {
           <h1 className={styles.title}>Mis Listings</h1>
           <Button
             variant="primary"
-            onClick={() => navigate('/seller/listings/new')}
+            onClick={() => navigate("/seller/listings/new")}
           >
             + Nuevo Listing
           </Button>
@@ -114,7 +127,7 @@ export const MyListingsPage: React.FC = () => {
 
         {message && (
           <Alert
-            variant={message.type === 'error' ? 'error' : 'success'}
+            variant={message.type === "error" ? "error" : "success"}
             onClose={() => setMessage(null)}
           >
             {message.text}
@@ -129,26 +142,34 @@ export const MyListingsPage: React.FC = () => {
 
         <div className={styles.filters}>
           <button
-            className={`${styles.filterButton} ${!filters.status ? styles.active : ''}`}
+            className={`${styles.filterButton} ${
+              !filters.status ? styles.active : ""
+            }`}
             onClick={() => handleStatusFilter(undefined)}
           >
             Todos
           </button>
           <button
-            className={`${styles.filterButton} ${filters.status === 'DRAFT' ? styles.active : ''}`}
-            onClick={() => handleStatusFilter('DRAFT')}
+            className={`${styles.filterButton} ${
+              filters.status === "DRAFT" ? styles.active : ""
+            }`}
+            onClick={() => handleStatusFilter("DRAFT")}
           >
             Borradores
           </button>
           <button
-            className={`${styles.filterButton} ${filters.status === 'PUBLISHED' ? styles.active : ''}`}
-            onClick={() => handleStatusFilter('PUBLISHED')}
+            className={`${styles.filterButton} ${
+              filters.status === "PUBLISHED" ? styles.active : ""
+            }`}
+            onClick={() => handleStatusFilter("PUBLISHED")}
           >
             Publicados
           </button>
           <button
-            className={`${styles.filterButton} ${filters.status === 'ARCHIVED' ? styles.active : ''}`}
-            onClick={() => handleStatusFilter('ARCHIVED')}
+            className={`${styles.filterButton} ${
+              filters.status === "ARCHIVED" ? styles.active : ""
+            }`}
+            onClick={() => handleStatusFilter("ARCHIVED")}
           >
             Archivados
           </button>
@@ -158,10 +179,16 @@ export const MyListingsPage: React.FC = () => {
           <Loading message="Cargando listings..." />
         ) : listings.length === 0 ? (
           <div className={styles.emptyState}>
-            <p>No tienes listings {filters.status ? `con estado ${getStatusLabel(filters.status)}` : ''}.</p>
+            <p>
+              No tienes listings{" "}
+              {filters.status
+                ? `con estado ${getStatusLabel(filters.status)}`
+                : ""}
+              .
+            </p>
             <Button
               variant="primary"
-              onClick={() => navigate('/seller/listings/new')}
+              onClick={() => navigate("/seller/listings/new")}
             >
               Crear tu primer listing
             </Button>
@@ -191,11 +218,14 @@ export const MyListingsPage: React.FC = () => {
                             alt={listing.brand}
                             className={styles.thumbnail}
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/placeholder-sneaker.png';
+                              (e.target as HTMLImageElement).src =
+                                "/placeholder-sneaker.png";
                             }}
                           />
                         ) : (
-                          <div className={styles.thumbnailPlaceholder}>Sin imagen</div>
+                          <div className={styles.thumbnailPlaceholder}>
+                            Sin imagen
+                          </div>
                         )}
                       </td>
                       <td>{listing.brand}</td>
@@ -203,18 +233,26 @@ export const MyListingsPage: React.FC = () => {
                       <td>{listing.condition}</td>
                       <td>{formatPrice(listing.price)}</td>
                       <td>
-                        <span className={`${styles.statusBadge} ${getStatusClass(listing.status)}`}>
+                        <span
+                          className={`${styles.statusBadge} ${getStatusClass(
+                            listing.status
+                          )}`}
+                        >
                           {getStatusLabel(listing.status)}
                         </span>
                       </td>
                       <td>
                         <div className={styles.actions}>
-                          {listing.status === 'DRAFT' && (
+                          {listing.status === "DRAFT" && (
                             <>
                               <Button
                                 variant="outline"
                                 size="small"
-                                onClick={() => navigate(`/seller/listings/${listing.id}/edit`)}
+                                onClick={() =>
+                                  navigate(
+                                    `/seller/listings/${listing.id}/edit`
+                                  )
+                                }
                               >
                                 Editar
                               </Button>
@@ -227,7 +265,7 @@ export const MyListingsPage: React.FC = () => {
                               </Button>
                             </>
                           )}
-                          {listing.status === 'PUBLISHED' && (
+                          {listing.status === "PUBLISHED" && (
                             <Button
                               variant="outline"
                               size="small"
@@ -248,20 +286,27 @@ export const MyListingsPage: React.FC = () => {
               <div className={styles.pagination}>
                 <button
                   className={styles.paginationButton}
-                  onClick={() => setFilters((prev) => ({ ...prev, page: currentPage - 1 }))}
+                  onClick={() =>
+                    setFilters((prev) => ({ ...prev, page: currentPage - 1 }))
+                  }
                   disabled={currentPage === 0}
                 >
                   Anterior
                 </button>
-                
+
                 <span className={styles.paginationInfo}>
-                  Página {currentPage + 1} de {Math.ceil(total / (filters.size || 20))}
+                  Página {currentPage + 1} de{" "}
+                  {Math.ceil(total / (filters.size || 20))}
                 </span>
-                
+
                 <button
                   className={styles.paginationButton}
-                  onClick={() => setFilters((prev) => ({ ...prev, page: currentPage + 1 }))}
-                  disabled={currentPage >= Math.ceil(total / (filters.size || 20)) - 1}
+                  onClick={() =>
+                    setFilters((prev) => ({ ...prev, page: currentPage + 1 }))
+                  }
+                  disabled={
+                    currentPage >= Math.ceil(total / (filters.size || 20)) - 1
+                  }
                 >
                   Siguiente
                 </button>
@@ -273,4 +318,3 @@ export const MyListingsPage: React.FC = () => {
     </div>
   );
 };
-
