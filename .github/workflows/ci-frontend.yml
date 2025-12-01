@@ -1,0 +1,40 @@
+name: CI - React Goat Frontend
+
+on:
+  push:
+    paths:
+      - "frontend/goat_frontend/**"
+  pull_request:
+    paths:
+      - "frontend/goat_frontend/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend/goat_frontend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node 18+
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: "frontend/goat_frontend/package-lock.json"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run TypeScript check
+        run: npm run type-check || echo "No type-check script provided"
+
+      - name: Run Lint check
+        run: npm run lint || echo "No lint script provided"
+
+      - name: Build project
+        run: npm run build

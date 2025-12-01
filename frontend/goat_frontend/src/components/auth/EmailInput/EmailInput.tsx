@@ -1,10 +1,12 @@
-import React from 'react';
-import { Input, InputProps } from '../../common/Input/Input';
-import { validateEmail } from '../../../utils/validators';
+import React from "react";
+import { Input, InputProps } from "../../common/Input/Input";
+import { validateEmail } from "../../../utils/validators";
 
-export interface EmailInputProps extends Omit<InputProps, 'type' | 'onBlur'> {
+export interface EmailInputProps extends Omit<InputProps, "type"> {
+  value?: string;
   validateOnBlur?: boolean;
   onValidationChange?: (isValid: boolean) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
 }
 
 export const EmailInput: React.FC<EmailInputProps> = ({
@@ -12,43 +14,35 @@ export const EmailInput: React.FC<EmailInputProps> = ({
   onValidationChange,
   value,
   error: externalError,
+  onBlur,
   ...inputProps
 }) => {
-  const [internalError, setInternalError] = React.useState<string | undefined>();
+  const [internalError, setInternalError] = React.useState<
+    string | undefined
+  >();
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     if (validateOnBlur && value) {
-      const validation = validateEmail(value as string);
+      const validation = validateEmail(value);
       if (!validation.valid) {
         setInternalError(validation.message);
-        if (onValidationChange) {
-          onValidationChange(false);
-        }
+        onValidationChange?.(false);
       } else {
         setInternalError(undefined);
-        if (onValidationChange) {
-          onValidationChange(true);
-        }
+        onValidationChange?.(true);
       }
     }
-    
-    if (inputProps.onBlur) {
-      inputProps.onBlur(e);
-    }
+
+    onBlur?.(e);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Limpiar error cuando el usuario empieza a escribir
     if (internalError) {
       setInternalError(undefined);
-      if (onValidationChange) {
-        onValidationChange(true);
-      }
+      onValidationChange?.(true);
     }
-    
-    if (inputProps.onChange) {
-      inputProps.onChange(e);
-    }
+
+    inputProps.onChange?.(e);
   };
 
   const error = externalError || internalError;
@@ -65,4 +59,3 @@ export const EmailInput: React.FC<EmailInputProps> = ({
     />
   );
 };
-

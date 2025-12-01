@@ -282,7 +282,7 @@ export const MyListingsPage: React.FC = () => {
               </table>
             </div>
 
-            {Math.ceil(total / (filters.size || 20)) > 1 && (
+            {Math.ceil(total / (filters.pageSize || 20)) > 1 && (
               <div className={styles.pagination}>
                 <button
                   className={styles.paginationButton}
@@ -296,7 +296,7 @@ export const MyListingsPage: React.FC = () => {
 
                 <span className={styles.paginationInfo}>
                   Página {currentPage + 1} de{" "}
-                  {Math.ceil(total / (filters.size || 20))}
+                  {Math.ceil(total / (filters.pageSize || 20))}
                 </span>
 
                 <button
@@ -305,7 +305,8 @@ export const MyListingsPage: React.FC = () => {
                     setFilters((prev) => ({ ...prev, page: currentPage + 1 }))
                   }
                   disabled={
-                    currentPage >= Math.ceil(total / (filters.size || 20)) - 1
+                    currentPage >=
+                    Math.ceil(total / (filters.pageSize || 20)) - 1
                   }
                 >
                   Siguiente
