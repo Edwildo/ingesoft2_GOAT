@@ -48,6 +48,8 @@ public class SecurityConfig {
                         .requestMatchers("GET", "/api/catalog/sneakers").permitAll()
                         .requestMatchers("GET", "/api/catalog/sneakers/{sku}").permitAll()
                         // POST /api/catalog/sneakers requiere autenticación
+                        // Carrito requiere autenticación en todos los endpoints
+                        .requestMatchers("/api/cart/**").authenticated()
                         .anyRequest().authenticated()
                 );
         return http.build();
