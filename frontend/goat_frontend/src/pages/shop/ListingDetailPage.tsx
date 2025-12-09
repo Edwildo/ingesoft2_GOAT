@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { useCart } from "../../context/CartContext";
 import { listingService } from "../../api/listing.service";
 import { catalogService } from "../../api/catalog.service";
 import { Card } from "../../components/common/Card";
@@ -13,11 +15,17 @@ import styles from "./ListingDetailPage.module.css";
 export const ListingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
+  const { addItem, isLoading: cartLoading } = useCart();
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [sneaker, setSneaker] = useState<Sneaker | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -83,6 +91,31 @@ export const ListingDetailPage: React.FC = () => {
       FAIR: "Regular",
     };
     return labels[condition] || condition;
+  };
+
+  const canAddToCart = Boolean(
+    listing &&
+      listing.status === "PUBLISHED" &&
+      (!user || user.id !== listing.sellerId)
+  );
+
+  const handleAddToCart = async () => {
+    if (!listing) return;
+
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    setActionMessage(null);
+    const result = await addItem(listing.id);
+    if (result.success) {
+      setActionMessage({ type: "success", text: "Agregado al carrito" });
+    } else if (result.message) {
+      setActionMessage({ type: "error", text: result.message });
+    } else {
+      setActionMessage({ type: "error", text: "No se pudo agregar al carrito" });
+    }
   };
 
   if (isLoading) {
@@ -155,6 +188,15 @@ export const ListingDetailPage: React.FC = () => {
 
               {sneaker && <h2 className={styles.model}>{sneaker.model}</h2>}
 
+              {actionMessage && (
+                <Alert
+                  variant={actionMessage.type === "error" ? "error" : "success"}
+                  onClose={() => setActionMessage(null)}
+                >
+                  {actionMessage.text}
+                </Alert>
+              )}
+
               <div className={styles.details}>
                 <div className={styles.detailItem}>
                   <strong>Talla:</strong> {listing.size}
@@ -190,9 +232,12 @@ export const ListingDetailPage: React.FC = () => {
                 size="large"
                 fullWidth
                 className={styles.buyButton}
-                disabled
+                disabled={!canAddToCart || cartLoading}
+                onClick={handleAddToCart}
               >
-                Comprar (Próximamente)
+                {user?.id === listing.sellerId
+                  ? "Es tu listing"
+                  : "Agregar al carrito"}
               </Button>
             </Card>
           </div>

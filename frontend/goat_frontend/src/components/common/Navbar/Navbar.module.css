@@ -47,6 +47,9 @@
   transition: color var(--theme-transition-base);
   padding: var(--theme-spacing-xs) 0;
   border-bottom: var(--theme-border-width-thin) solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .menuItem:hover {
@@ -60,6 +63,20 @@
   gap: var(--theme-spacing-md);
   padding-left: var(--theme-spacing-lg);
   border-left: var(--theme-border-width-thin) solid var(--theme-color-gray-300);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: var(--theme-spacing-xs) var(--theme-spacing-sm);
+  border-radius: var(--theme-border-radius-full);
+  background: var(--theme-color-gray-900);
+  color: var(--theme-color-white);
+  font-size: var(--theme-font-size-xs);
+  font-weight: var(--theme-font-weight-bold);
+  font-family: var(--theme-font-sans);
 }
 
 .userEmail {
