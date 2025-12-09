@@ -5,6 +5,8 @@ DROP VIEW IF EXISTS navigation.vw_menus_by_role CASCADE;
 DROP VIEW IF EXISTS identity.vw_users_with_roles CASCADE;
 
 DROP TABLE IF EXISTS listing.listings CASCADE;
+DROP TABLE IF EXISTS cart.cart_items CASCADE;
+DROP TABLE IF EXISTS cart.carts CASCADE;
 DROP TABLE IF EXISTS navigation.roles_menus CASCADE;
 DROP TABLE IF EXISTS navigation.menus CASCADE;
 DROP TABLE IF EXISTS identity.users_roles CASCADE;
@@ -14,6 +16,7 @@ DROP TABLE IF EXISTS identity.users CASCADE;
 DROP TYPE IF EXISTS listing.listing_status CASCADE;
 
 DROP SCHEMA IF EXISTS listing CASCADE;
+DROP SCHEMA IF EXISTS cart CASCADE;
 DROP SCHEMA IF EXISTS navigation CASCADE;
 DROP SCHEMA IF EXISTS identity CASCADE;
 
@@ -114,6 +117,7 @@ CREATE INDEX IF NOT EXISTS idx_roles_menus_role_id ON navigation.roles_menus(rol
 CREATE INDEX IF NOT EXISTS idx_roles_menus_menu_id ON navigation.roles_menus(menu_id);
 
 CREATE SCHEMA IF NOT EXISTS listing;
+CREATE SCHEMA IF NOT EXISTS cart;
 
 CREATE TABLE IF NOT EXISTS listing.listings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -147,6 +151,49 @@ CREATE TRIGGER trigger_listings_updated_at
     BEFORE UPDATE ON listing.listings
     FOR EACH ROW
     EXECUTE FUNCTION identity.update_updated_at_column();
+
+CREATE TABLE IF NOT EXISTS cart.carts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_carts_user FOREIGN KEY (user_id) REFERENCES identity.users(id) ON DELETE CASCADE,
+    CONSTRAINT chk_carts_status CHECK (status IN ('ACTIVE', 'CHECKOUT', 'ABANDONED'))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_carts_active_user
+    ON cart.carts(user_id)
+    WHERE status = 'ACTIVE';
+
+CREATE INDEX IF NOT EXISTS idx_carts_status ON cart.carts(status);
+CREATE INDEX IF NOT EXISTS idx_carts_user_id ON cart.carts(user_id);
+
+CREATE TRIGGER trigger_carts_updated_at
+    BEFORE UPDATE ON cart.carts
+    FOR EACH ROW
+    EXECUTE FUNCTION identity.update_updated_at_column();
+
+CREATE TABLE IF NOT EXISTS cart.cart_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    cart_id UUID NOT NULL,
+    listing_id UUID NOT NULL,
+    price NUMERIC(12, 2) NOT NULL,
+    sneaker_sku VARCHAR(80) NOT NULL,
+    size VARCHAR(16) NOT NULL,
+    brand VARCHAR(60) NOT NULL,
+    color VARCHAR(40) NOT NULL,
+    condition VARCHAR(24) NOT NULL,
+    cover_image VARCHAR(256),
+    added_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cart_items_cart FOREIGN KEY (cart_id) REFERENCES cart.carts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cart_items_listing FOREIGN KEY (listing_id) REFERENCES listing.listings(id) ON DELETE CASCADE,
+    CONSTRAINT chk_cart_items_price_positive CHECK (price > 0),
+    CONSTRAINT uq_cart_items_cart_listing UNIQUE (cart_id, listing_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON cart.cart_items(cart_id);
+CREATE INDEX IF NOT EXISTS idx_cart_items_listing_id ON cart.cart_items(listing_id);
 
 INSERT INTO identity.roles (code, name, description) VALUES
     ('SUPER_ADMIN', 'Super Administrador', 'Acceso completo al sistema'),
