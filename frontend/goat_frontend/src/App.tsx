@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { VerifyOTPPage } from './pages/auth/VerifyOTPPage';
@@ -11,6 +12,7 @@ import { ListingDetailPage } from './pages/shop/ListingDetailPage';
 import { MyListingsPage } from './pages/seller/MyListingsPage';
 import { CreateListingPage } from './pages/seller/CreateListingPage';
 import { EditListingPage } from './pages/seller/EditListingPage';
+import { CartPage } from './pages/cart/CartPage';
 import { Navbar } from './components/common/Navbar';
 import { Loading } from './components/common/Loading';
 import './styles/theme.css';
@@ -105,6 +107,14 @@ function AppRoutes() {
         <Route path="/shop" element={<ShopPage />} />
         <Route path="/shop/:id" element={<ListingDetailPage />} />
         <Route
+          path="/cart"
+          element={
+            <ProtectedRoute>
+              <CartPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/dashboard"
           element={
             <ProtectedRoute>
@@ -147,7 +157,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <AppRoutes />
+        <CartProvider>
+          <AppRoutes />
+        </CartProvider>
       </AuthProvider>
     </BrowserRouter>
   );
