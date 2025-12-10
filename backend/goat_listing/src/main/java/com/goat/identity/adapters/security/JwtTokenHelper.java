@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -19,9 +20,13 @@ import java.util.UUID;
 @Component
 public class JwtTokenHelper {
     private final SecretKey secretKey;
+    private static final String DEFAULT_SECRET = "defaultSecretKeyThatShouldBeChangedInProductionEnvironment";
 
     public JwtTokenHelper(
             @Value("${jwt.secret:defaultSecretKeyThatShouldBeChangedInProductionEnvironment}") String secret) {
+        if (!StringUtils.hasText(secret) || DEFAULT_SECRET.equals(secret) || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("JWT secret inválido: define jwt.secret (>=32 bytes) y evita el valor por defecto");
+        }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -112,5 +117,13 @@ public class JwtTokenHelper {
                 : authHeader;
 
         return extractUserId(token);
+    }
+
+    /**
+     * Extrae el ID de token (jti) si está presente.
+     */
+    public String extractJti(String token) {
+        Claims claims = parseToken(token);
+        return claims.getId();
     }
 }
