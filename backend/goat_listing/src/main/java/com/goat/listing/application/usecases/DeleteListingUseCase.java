@@ -63,3 +63,4 @@ public class DeleteListingUseCase {
         listingRepository.deleteById(listingId);
     }
 }
+
