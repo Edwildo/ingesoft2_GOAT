@@ -13,6 +13,7 @@ public record VerifyOtpRequest(
     String email,
     
     @NotBlank(message = "El código OTP es requerido")
+    @Pattern(regexp = "^[0-9]{4,8}$", message = "El OTP debe ser numérico de 4 a 8 dígitos")
     String otp,
     
     @NotBlank(message = "El propósito es requerido")
@@ -20,4 +21,3 @@ public record VerifyOtpRequest(
              message = "El propósito debe ser: REGISTER, LOGIN, EMAIL_CONFIRMATION o RESET_PASSWORD")
     String purpose
 ) {}
-

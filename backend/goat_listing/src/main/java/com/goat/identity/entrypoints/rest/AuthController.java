@@ -14,13 +14,16 @@ import com.goat.identity.application.usecases.GenerateOtpUseCase;
 import com.goat.identity.application.usecases.LoginUserUseCase;
 import com.goat.identity.application.usecases.VerifyOtpUseCase;
 import com.goat.identity.domain.valueobjects.Email;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Controlador REST para operaciones de autenticación.
@@ -49,10 +52,53 @@ public class AuthController {
         this.verifyOtpUseCase = verifyOtpUseCase;
     }
 
+    private static final int MAX_ATTEMPTS = 5;
+    private static final long WINDOW_SECONDS = 300; // 5 minutos
+    private static final long COOLDOWN_SECONDS = 300; // 5 minutos
+    private final ConcurrentHashMap<String, AttemptWindow> attempts = new ConcurrentHashMap<>();
+
+    private record AttemptWindow(int count, Instant windowStart, Instant blockedUntil) {}
+
+    private String keyFor(HttpServletRequest request, String identifier) {
+        String ip = request.getRemoteAddr();
+        return ip + "|" + (identifier != null ? identifier : "");
+    }
+
+    private boolean isBlocked(String key) {
+        AttemptWindow aw = attempts.get(key);
+        return aw != null && aw.blockedUntil() != null && aw.blockedUntil().isAfter(Instant.now());
+    }
+
+    private void registerFailure(String key) {
+        AttemptWindow aw = attempts.get(key);
+        Instant now = Instant.now();
+        if (aw == null || aw.windowStart().plusSeconds(WINDOW_SECONDS).isBefore(now)) {
+            attempts.put(key, new AttemptWindow(1, now, null));
+        } else {
+            int newCount = aw.count() + 1;
+            Instant blockedUntil = newCount >= MAX_ATTEMPTS ? now.plusSeconds(COOLDOWN_SECONDS) : null;
+            attempts.put(key, new AttemptWindow(newCount, aw.windowStart(), blockedUntil));
+        }
+    }
+
+    private void registerSuccess(String key) {
+        attempts.remove(key);
+    }
+
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        LoginResponse response = loginUserUseCase.execute(request);
-        return ResponseEntity.status(HttpStatus.OK).body(response);
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpReq) {
+        String key = keyFor(httpReq, request.email());
+        if (isBlocked(key)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+        try {
+            LoginResponse response = loginUserUseCase.execute(request);
+            registerSuccess(key);
+            return ResponseEntity.status(HttpStatus.OK).body(response);
+        } catch (Exception ex) {
+            registerFailure(key);
+            throw ex;
+        }
     }
 
     @PostMapping("/register")
@@ -84,17 +130,34 @@ public class AuthController {
     }
 
     @PostMapping("/otp")
-    public ResponseEntity<GenerateOtpResponse> generateOtp(@Valid @RequestBody GenerateOtpRequest request) {
+    public ResponseEntity<GenerateOtpResponse> generateOtp(@Valid @RequestBody GenerateOtpRequest request, HttpServletRequest httpReq) {
+        String key = keyFor(httpReq, request.email());
+        if (isBlocked(key)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         GenerateOtpResponse response = generateOtpUseCase.execute(request);
         HttpStatus status = response.success() ? HttpStatus.CREATED : HttpStatus.INTERNAL_SERVER_ERROR;
+        if (!response.success()) {
+            registerFailure(key);
+        } else {
+            registerSuccess(key);
+        }
         return ResponseEntity.status(status).body(response);
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<VerifyOtpResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
+    public ResponseEntity<VerifyOtpResponse> verifyOtp(@Valid @RequestBody VerifyOtpRequest request, HttpServletRequest httpReq) {
+        String key = keyFor(httpReq, request.email());
+        if (isBlocked(key)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         VerifyOtpResponse response = verifyOtpUseCase.execute(request);
         HttpStatus status = response.valid() ? HttpStatus.OK : HttpStatus.BAD_REQUEST;
+        if (!response.valid()) {
+            registerFailure(key);
+        } else {
+            registerSuccess(key);
+        }
         return ResponseEntity.status(status).body(response);
     }
 }
-
