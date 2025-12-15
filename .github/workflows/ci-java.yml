@@ -49,7 +49,7 @@ jobs:
           context: .
           file: Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/goat-listing:${{ github.sha }}
+          tags: ghcr.io/goat/goat-listing:${{ github.sha }}
 
       - name: Upload image tag to workflow
         run: echo "IMAGE_TAG=ghcr.io/${{ github.repository_owner }}/goat-listing:${{ github.sha }}" >> $GITHUB_ENV
