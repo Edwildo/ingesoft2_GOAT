@@ -49,8 +49,8 @@ export const EditListingPage: React.FC = () => {
       if (response.success && response.data) {
         const listingData = response.data;
 
-        if (listingData.status !== "DRAFT") {
-          setError("Solo se pueden editar listings en estado DRAFT");
+        if (listingData.status !== "DRAFT" && listingData.status !== "ARCHIVED") {
+          setError("Solo se pueden editar listings en estado DRAFT o ARCHIVED");
           return;
         }
 
@@ -184,6 +184,11 @@ export const EditListingPage: React.FC = () => {
               <p>
                 <strong>Estado:</strong> {listing.status}
               </p>
+              {listing.status === "ARCHIVED" && (
+                <p style={{ color: "#856404", fontStyle: "italic" }}>
+                  Este listing está archivado. Al guardar los cambios, volverá a estado DRAFT.
+                </p>
+              )}
             </div>
 
             <div className={styles.row}>

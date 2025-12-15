@@ -29,7 +29,7 @@ src/goat_catalog/
 
 - Python 3.11+
 - Poetry (gestor de dependencias)
-- Docker y Docker Compose (para MongoDB)
+- MongoDB Atlas (base de datos en la nube)
 
 ### Instalación
 
@@ -47,13 +47,7 @@ touch .env
 
 Editar el archivo `.env` con tus configuraciones:
 
-**Para MongoDB Local (Docker):**
-```env
-MONGODB_URI=mongodb://localhost:27017
-MONGODB_DATABASE=auth
-```
-
-**Para MongoDB Atlas (Cloud):**
+**Configuración MongoDB Atlas (requerido):**
 ```env
 MONGODB_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority
 MONGODB_DATABASE=auth
@@ -103,17 +97,12 @@ EMAIL_RETRY_MAX_DELAY=10.0
   - Puerto 465: Usa TLS directo
   - Puerto 25: Generalmente bloqueado por ISPs
 
-4. **Si usas MongoDB Local**, iniciar MongoDB:
-```bash
-docker-compose up -d
-```
-
-5. Inicializar índices MongoDB:
+4. Inicializar índices MongoDB:
 ```bash
 poetry run python scripts/init_mongo_indexes.py
 ```
 
-6. Ejecutar el servidor:
+5. Ejecutar el servidor:
 
 **Opción 1: Usando el script de inicio (recomendado):**
 ```bash
@@ -212,8 +201,7 @@ El servicio Java (goat-listing) se comunica con este servicio para:
 ## 📝 Notas
 
 - Puerto por defecto: 8082
-- MongoDB Local: puerto 27017
 - MongoDB Atlas: Usa `mongodb+srv://` con ServerApi v1
 - OTPs expiran después de 5 minutos (configurable)
-- El proyecto soporta tanto MongoDB local como MongoDB Atlas
+- El proyecto usa MongoDB Atlas (en la nube) exclusivamente
 

@@ -6,6 +6,7 @@ import { Alert } from "../../components/common/Alert";
 import { EmailInput } from "../../components/auth/EmailInput";
 import { PasswordInput } from "../../components/auth/PasswordInput";
 import { useAuth } from "../../context/AuthContext";
+import { authStorage } from "../../utils/storage";
 import { validateEmail, validatePassword } from "../../utils/validators";
 import styles from "./AuthPage.module.css";
 
@@ -60,7 +61,18 @@ export const LoginPage: React.FC = () => {
       const result = await login(email, password);
 
       if (result.success) {
-        navigate("/dashboard");
+        // Obtener el usuario recién logueado del storage
+        // El login() ya actualiza el storage, así que lo leemos directamente
+        const storedUser = authStorage.getUser();
+        
+        // Redirigir según el rol del usuario
+        if (storedUser?.roles?.includes('SELLER')) {
+          navigate("/seller/listings");
+        } else if (storedUser?.roles?.includes('BUYER')) {
+          navigate("/shop");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
         setMessage({ type: "error", text: result.message });
       }

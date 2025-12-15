@@ -5,12 +5,14 @@ import { Card } from "../../components/common/Card";
 import { Button } from "../../components/common/Button";
 import { Loading } from "../../components/common/Loading";
 import { Alert } from "../../components/common/Alert";
+import { CheckoutModal } from "../../components/checkout/CheckoutModal";
 import styles from "./CartPage.module.css";
 
 export const CartPage: React.FC = () => {
   const navigate = useNavigate();
   const { cart, isLoading, error, removeItem, refresh } = useCart();
   const [message, setMessage] = useState<string | null>(null);
+  const [showCheckout, setShowCheckout] = useState(false);
 
   useEffect(() => {
     if (!cart) {
@@ -123,13 +125,21 @@ export const CartPage: React.FC = () => {
               <p>
                 Total ({cart.items.length} items): <strong>{formatPrice(total)}</strong>
               </p>
-              <Button variant="primary" disabled fullWidth>
-                Checkout (Próximamente)
+              <Button
+                variant="primary"
+                fullWidth
+                onClick={() => setShowCheckout(true)}
+              >
+                Checkout
               </Button>
             </Card>
           </div>
         )}
       </div>
+
+      {showCheckout && (
+        <CheckoutModal onClose={() => setShowCheckout(false)} />
+      )}
     </div>
   );
 };

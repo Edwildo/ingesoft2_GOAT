@@ -7,13 +7,12 @@ import { Button } from "../../components/common/Button";
 import { Alert } from "../../components/common/Alert";
 import { Input } from "../../components/common/Input";
 import { SkuAutocomplete } from "../../components/seller/SkuAutocomplete";
-import { CreateSneakerModal } from "../../components/seller/CreateSneakerModal";
 import {
   CreateListingRequest,
   Condition,
   Gender,
 } from "../../types/listing.types";
-import { Sneaker, CreateSneakerRequest } from "../../types/catalog.types";
+import { Sneaker } from "../../types/catalog.types";
 import styles from "./CreateListingPage.module.css";
 
 export const CreateListingPage: React.FC = () => {
@@ -31,19 +30,22 @@ export const CreateListingPage: React.FC = () => {
   });
 
   const [selectedSneaker, setSelectedSneaker] = useState<Sneaker | null>(null);
+  const [sneakerExists, setSneakerExists] = useState<boolean>(true);
+  const [sneakerCreated, setSneakerCreated] = useState<boolean>(false);
+  const [sneakerModel, setSneakerModel] = useState<string>("");
+  const [sneakerDescription, setSneakerDescription] = useState<string>("");
   const [errors, setErrors] = useState<
-    Partial<Record<keyof CreateListingRequest, string>>
+    Partial<Record<keyof CreateListingRequest | "sneakerModel", string>>
   >({});
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
-  const [showCreateSneakerModal, setShowCreateSneakerModal] = useState(false);
-  const [pendingSku, setPendingSku] = useState<string>("");
 
   const handleSkuSelect = (sneaker: Sneaker) => {
     setSelectedSneaker(sneaker);
+    setSneakerExists(true);
     setFormData((prev) => ({
       ...prev,
       brand: sneaker.brand,
@@ -52,8 +54,39 @@ export const CreateListingPage: React.FC = () => {
     }));
   };
 
+  const handleSkuChange = async (sku: string) => {
+    setFormData((prev) => ({ ...prev, sneakerSku: sku }));
+    setSelectedSneaker(null);
+    setSneakerModel("");
+    setSneakerDescription("");
+    setSneakerCreated(false);
+
+    // Verificar si el SKU existe cuando el usuario lo escribe
+    if (sku.trim().length >= 3) {
+      try {
+        const sneakerCheck = await catalogService.getSneakerBySku(sku.trim());
+        setSneakerExists(sneakerCheck.success);
+        
+        // Si existe, prellenar datos
+        if (sneakerCheck.success && sneakerCheck.data) {
+          setFormData((prev) => ({
+            ...prev,
+            brand: sneakerCheck.data!.brand,
+            gender: sneakerCheck.data!.gender as Gender,
+            coverImage: sneakerCheck.data!.media?.coverImage || prev.coverImage,
+          }));
+        }
+      } catch (err) {
+        // Silencioso, se verificará al hacer submit
+        setSneakerExists(true);
+      }
+    } else {
+      setSneakerExists(true);
+    }
+  };
+
   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof CreateListingRequest, string>> = {};
+    const newErrors: Partial<Record<keyof CreateListingRequest | "sneakerModel", string>> = {};
 
     if (!formData.sneakerSku) {
       newErrors.sneakerSku = "El SKU es requerido";
@@ -73,6 +106,11 @@ export const CreateListingPage: React.FC = () => {
 
     if (formData.price <= 0) {
       newErrors.price = "El precio debe ser mayor a 0";
+    }
+
+    // Si el sneaker no existe, el modelo es requerido
+    if (!sneakerExists && !sneakerModel.trim()) {
+      newErrors.sneakerModel = "El modelo es requerido para crear el sneaker";
     }
 
     setErrors(newErrors);
@@ -96,12 +134,53 @@ export const CreateListingPage: React.FC = () => {
       );
 
       if (!sneakerCheck.success) {
-        // Si el error es 404, el SKU no existe
+        // Si el error es 404, el SKU no existe - crear sneaker automáticamente
         if (sneakerCheck.error?.status === 404) {
-          setPendingSku(formData.sneakerSku);
-          setShowCreateSneakerModal(true);
-          setIsLoading(false);
-          return;
+          setSneakerExists(false);
+          
+          // Validar que tenemos los datos necesarios para crear el sneaker
+          if (!sneakerModel.trim()) {
+            setMessage({
+              type: "error",
+              text: "El modelo es requerido para crear el sneaker",
+            });
+            setIsLoading(false);
+            return;
+          }
+
+          // Crear el sneaker automáticamente
+          const createSneakerResponse = await catalogService.createSneaker({
+            sku: formData.sneakerSku.toUpperCase(),
+            brand: formData.brand,
+            model: sneakerModel.trim(),
+            gender: formData.gender,
+            description: sneakerDescription.trim() || undefined,
+            categories: [],
+            collections: [],
+            media: formData.coverImage
+              ? {
+                  coverImage: formData.coverImage,
+                  gallery: [],
+                }
+              : undefined,
+          });
+
+          if (!createSneakerResponse.success) {
+            setMessage({
+              type: "error",
+              text:
+                createSneakerResponse.error?.message ||
+                "Error al crear el sneaker en el catálogo",
+            });
+            setIsLoading(false);
+            return;
+          }
+
+          setSneakerCreated(true);
+          setSneakerExists(true);
+
+          // Esperar un momento para que el sneaker se propague
+          await new Promise((resolve) => setTimeout(resolve, 500));
         } else {
           // Otro error
           setMessage({
@@ -111,13 +190,20 @@ export const CreateListingPage: React.FC = () => {
           setIsLoading(false);
           return;
         }
+      } else {
+        setSneakerExists(true);
       }
 
-      // 2. SKU existe, proceder a crear el listing
+      // 2. Crear el listing (el SKU ahora existe)
       const response = await listingService.createListing(formData);
 
       if (response.success && response.data) {
-        setMessage({ type: "success", text: "Listing creado exitosamente" });
+        setMessage({
+          type: "success",
+          text: sneakerCreated
+            ? "Sneaker y listing creados exitosamente"
+            : "Listing creado exitosamente",
+        });
         setTimeout(() => {
           navigate("/seller/listings");
         }, 1500);
@@ -135,43 +221,6 @@ export const CreateListingPage: React.FC = () => {
     }
   };
 
-  const handleSneakerCreated = async (sneakerData: CreateSneakerRequest) => {
-    // Actualizar el formulario con los datos del sneaker creado
-    setFormData((prev) => ({
-      ...prev,
-      brand: sneakerData.brand,
-      gender: sneakerData.gender as Gender,
-      coverImage: sneakerData.media?.coverImage || prev.coverImage,
-    }));
-
-    // Crear el listing ahora que el SKU existe
-    setIsLoading(true);
-    setMessage(null);
-
-    try {
-      const response = await listingService.createListing(formData);
-
-      if (response.success && response.data) {
-        setMessage({
-          type: "success",
-          text: "Sneaker y listing creados exitosamente",
-        });
-        setTimeout(() => {
-          navigate("/seller/listings");
-        }, 1500);
-      } else {
-        setMessage({
-          type: "error",
-          text: response.error?.message || "Error al crear listing",
-        });
-      }
-    } catch (err) {
-      console.error("Create listing after sneaker creation error:", err);
-      setMessage({ type: "error", text: "Error de conexión con el servidor" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className={styles.createListingPage}>
@@ -191,9 +240,7 @@ export const CreateListingPage: React.FC = () => {
           <form onSubmit={handleSubmit} className={styles.form}>
             <SkuAutocomplete
               value={formData.sneakerSku}
-              onChange={(sku) =>
-                setFormData((prev) => ({ ...prev, sneakerSku: sku }))
-              }
+              onChange={handleSkuChange}
               onSneakerSelect={handleSkuSelect}
               error={errors.sneakerSku}
               disabled={isLoading}
@@ -225,6 +272,35 @@ export const CreateListingPage: React.FC = () => {
                 fullWidth
               />
             </div>
+
+            {/* Campos para crear sneaker si no existe */}
+            {!selectedSneaker && (
+              <div className={styles.row}>
+                <Input
+                  id="sneakerModel"
+                  label="Modelo del Sneaker"
+                  value={sneakerModel}
+                  onChange={(e) => setSneakerModel(e.target.value)}
+                  error={errors.sneakerModel}
+                  required={!sneakerExists}
+                  fullWidth
+                  helperText={
+                    sneakerExists
+                      ? "Opcional (el sneaker ya existe)"
+                      : "Requerido para crear el sneaker en el catálogo"
+                  }
+                />
+
+                <Input
+                  id="sneakerDescription"
+                  label="Descripción del Sneaker"
+                  value={sneakerDescription}
+                  onChange={(e) => setSneakerDescription(e.target.value)}
+                  fullWidth
+                  helperText="Opcional"
+                />
+              </div>
+            )}
 
             <div className={styles.row}>
               <div className={styles.selectGroup}>
@@ -326,20 +402,14 @@ export const CreateListingPage: React.FC = () => {
                 Cancelar
               </Button>
               <Button type="submit" variant="primary" isLoading={isLoading}>
-                Crear Listing
+                {sneakerExists || selectedSneaker
+                  ? "Crear Listing"
+                  : "Crear Sneaker y Listing"}
               </Button>
             </div>
           </form>
         </Card>
       </div>
-
-      {showCreateSneakerModal && (
-        <CreateSneakerModal
-          sku={pendingSku}
-          onClose={() => setShowCreateSneakerModal(false)}
-          onSuccess={handleSneakerCreated}
-        />
-      )}
     </div>
   );
 };

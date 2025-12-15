@@ -49,18 +49,18 @@ public class Listing {
 
     /**
      * Verifica si el listing puede ser editado.
-     * Regla de negocio: solo listings DRAFT pueden editarse.
+     * Regla de negocio: listings DRAFT y ARCHIVED pueden editarse.
      */
     public boolean canBeEdited() {
-        return this.status == ListingStatus.DRAFT;
+        return this.status == ListingStatus.DRAFT || this.status == ListingStatus.ARCHIVED;
     }
 
     /**
      * Verifica si el listing puede ser publicado.
-     * Regla de negocio: solo listings DRAFT pueden publicarse.
+     * Regla de negocio: listings DRAFT y ARCHIVED pueden publicarse.
      */
     public boolean canBePublished() {
-        return this.status == ListingStatus.DRAFT;
+        return this.status == ListingStatus.DRAFT || this.status == ListingStatus.ARCHIVED;
     }
 
     /**
@@ -72,11 +72,11 @@ public class Listing {
     }
 
     /**
-     * Publica el listing (DRAFT -> PUBLISHED).
+     * Publica el listing (DRAFT -> PUBLISHED o ARCHIVED -> PUBLISHED).
      */
     public void publish() {
         if (!canBePublished()) {
-            throw new IllegalStateException("Solo listings en estado DRAFT pueden publicarse");
+            throw new IllegalStateException("Solo listings en estado DRAFT o ARCHIVED pueden publicarse");
         }
         this.status = ListingStatus.PUBLISHED;
         this.updatedAt = LocalDateTime.now();

@@ -17,23 +17,4 @@ public interface CartRepository {
      * @return Optional con el carrito si existe, empty si no
      */
     Optional<Cart> findActiveByUser(UUID userId);
-
-    /**
-     * Guarda o actualiza un carrito en la base de datos.
-     * @param cart el carrito a guardar
-     */
-    void save(Cart cart);
-
-    /**
-     * Elimina un item del carrito.
-     * @param cartId ID del carrito
-     * @param itemId ID del item
-     */
-    void removeItem(UUID cartId, UUID itemId);
-
-    /**
-     * Elimina todos los items del carrito (lo vacía).
-     * @param cartId ID del carrito
-     */
-    void clearCart(UUID cartId);
 }

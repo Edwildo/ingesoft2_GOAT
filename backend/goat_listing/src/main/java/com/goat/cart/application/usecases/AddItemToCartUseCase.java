@@ -1,11 +1,11 @@
 package com.goat.cart.application.usecases;
 
-import com.goat.cart.domain.entities.Cart;
-import com.goat.cart.domain.entities.CartItem;
+import com.goat.cart.adapters.external.RestCartServiceAdapter;
+import com.goat.cart.adapters.external.dto.AddItemRequestPython;
 import com.goat.cart.domain.exceptions.CannotAddOwnListingException;
+import com.goat.cart.domain.exceptions.ItemAlreadyInCartException;
 import com.goat.cart.domain.exceptions.ListingNotAvailableException;
 import com.goat.cart.ports.CartRepository;
-import com.goat.listing.domain.entities.Listing;
 import com.goat.listing.domain.enums.ListingStatus;
 import com.goat.listing.ports.ListingRepository;
 import org.slf4j.Logger;
@@ -16,6 +16,8 @@ import java.util.UUID;
 
 /**
  * Use case para agregar un item al carrito.
+ * 
+ * Valida el listing en Java y luego delega al servicio Python para persistir en MongoDB.
  */
 @Component
 public class AddItemToCartUseCase {
@@ -24,10 +26,15 @@ public class AddItemToCartUseCase {
 
     private final CartRepository cartRepository;
     private final ListingRepository listingRepository;
+    private final RestCartServiceAdapter cartServiceAdapter;
 
-    public AddItemToCartUseCase(CartRepository cartRepository, ListingRepository listingRepository) {
+    public AddItemToCartUseCase(
+            CartRepository cartRepository,
+            ListingRepository listingRepository,
+            RestCartServiceAdapter cartServiceAdapter) {
         this.cartRepository = cartRepository;
         this.listingRepository = listingRepository;
+        this.cartServiceAdapter = cartServiceAdapter;
     }
 
     public void execute(UUID userId, UUID listingId) {
@@ -46,18 +53,15 @@ public class AddItemToCartUseCase {
             throw new CannotAddOwnListingException("No puedes agregar tus propios listings al carrito");
         }
 
-        // 3. Buscar o crear carrito ACTIVE
-        var cart = cartRepository.findActiveByUser(userId)
-                .orElseGet(() -> Cart.createNew(userId));
-
-        // 4. Evitar duplicados
-        if (cart.containsItem(listingId)) {
+        // 3. Verificar que el item no esté ya en el carrito
+        var cart = cartRepository.findActiveByUser(userId);
+        if (cart.isPresent() && cart.get().containsItem(listingId)) {
             logger.warn("El item {} ya existe en el carrito del usuario {}", listingId, userId);
-            throw new RuntimeException("Este item ya está en tu carrito");
+            throw new ItemAlreadyInCartException("Este item ya está en tu carrito");
         }
 
-        // 5. Crear CartItem con snapshot del precio y metadatos
-        var cartItem = new CartItem(
+        // 4. Crear request con toda la información del listing
+        var request = AddItemRequestPython.from(
                 listingId,
                 listing.getSneakerSku(),
                 listing.getSize(),
@@ -68,11 +72,8 @@ public class AddItemToCartUseCase {
                 listing.getCoverImage()
         );
 
-        // 6. Agregar al carrito
-        cart.addItem(cartItem);
-
-        // 7. Guardar
-        cartRepository.save(cart);
+        // 5. Agregar al carrito en el servicio Python
+        cartServiceAdapter.addItem(userId, request);
 
         logger.info("Item {} agregado al carrito del usuario {}", listingId, userId);
     }

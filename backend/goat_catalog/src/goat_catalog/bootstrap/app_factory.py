@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ..shared.config import get_settings
 from ..shared.config.database import Database, get_database
 from ..shared.infrastructure.mongo_indexes import (
+    initialize_cart_indexes,
     initialize_catalog_indexes,
     initialize_otp_indexes,
 )
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
             database = get_database()
             await initialize_otp_indexes(database)
             await initialize_catalog_indexes(database)
+            await initialize_cart_indexes(database)
         except Exception as e:
             logger.error(f"Error en startup: {type(e).__name__}. El servidor continuara funcionando.")
 

@@ -4,9 +4,10 @@ DROP VIEW IF EXISTS listing.vw_published_listings CASCADE;
 DROP VIEW IF EXISTS navigation.vw_menus_by_role CASCADE;
 DROP VIEW IF EXISTS identity.vw_users_with_roles CASCADE;
 
+DROP TABLE IF EXISTS "order".order_status_history CASCADE;
+DROP TABLE IF EXISTS "order".order_items CASCADE;
+DROP TABLE IF EXISTS "order".orders CASCADE;
 DROP TABLE IF EXISTS listing.listings CASCADE;
-DROP TABLE IF EXISTS cart.cart_items CASCADE;
-DROP TABLE IF EXISTS cart.carts CASCADE;
 DROP TABLE IF EXISTS navigation.roles_menus CASCADE;
 DROP TABLE IF EXISTS navigation.menus CASCADE;
 DROP TABLE IF EXISTS identity.users_roles CASCADE;
@@ -15,8 +16,8 @@ DROP TABLE IF EXISTS identity.users CASCADE;
 
 DROP TYPE IF EXISTS listing.listing_status CASCADE;
 
+DROP SCHEMA IF EXISTS "order" CASCADE;
 DROP SCHEMA IF EXISTS listing CASCADE;
-DROP SCHEMA IF EXISTS cart CASCADE;
 DROP SCHEMA IF EXISTS navigation CASCADE;
 DROP SCHEMA IF EXISTS identity CASCADE;
 
@@ -117,7 +118,6 @@ CREATE INDEX IF NOT EXISTS idx_roles_menus_role_id ON navigation.roles_menus(rol
 CREATE INDEX IF NOT EXISTS idx_roles_menus_menu_id ON navigation.roles_menus(menu_id);
 
 CREATE SCHEMA IF NOT EXISTS listing;
-CREATE SCHEMA IF NOT EXISTS cart;
 
 CREATE TABLE IF NOT EXISTS listing.listings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -151,49 +151,6 @@ CREATE TRIGGER trigger_listings_updated_at
     BEFORE UPDATE ON listing.listings
     FOR EACH ROW
     EXECUTE FUNCTION identity.update_updated_at_column();
-
-CREATE TABLE IF NOT EXISTS cart.carts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_carts_user FOREIGN KEY (user_id) REFERENCES identity.users(id) ON DELETE CASCADE,
-    CONSTRAINT chk_carts_status CHECK (status IN ('ACTIVE', 'CHECKOUT', 'ABANDONED'))
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS uq_carts_active_user
-    ON cart.carts(user_id)
-    WHERE status = 'ACTIVE';
-
-CREATE INDEX IF NOT EXISTS idx_carts_status ON cart.carts(status);
-CREATE INDEX IF NOT EXISTS idx_carts_user_id ON cart.carts(user_id);
-
-CREATE TRIGGER trigger_carts_updated_at
-    BEFORE UPDATE ON cart.carts
-    FOR EACH ROW
-    EXECUTE FUNCTION identity.update_updated_at_column();
-
-CREATE TABLE IF NOT EXISTS cart.cart_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    cart_id UUID NOT NULL,
-    listing_id UUID NOT NULL,
-    price NUMERIC(12, 2) NOT NULL,
-    sneaker_sku VARCHAR(80) NOT NULL,
-    size VARCHAR(16) NOT NULL,
-    brand VARCHAR(60) NOT NULL,
-    color VARCHAR(40) NOT NULL,
-    condition VARCHAR(24) NOT NULL,
-    cover_image VARCHAR(256),
-    added_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_cart_items_cart FOREIGN KEY (cart_id) REFERENCES cart.carts(id) ON DELETE CASCADE,
-    CONSTRAINT fk_cart_items_listing FOREIGN KEY (listing_id) REFERENCES listing.listings(id) ON DELETE CASCADE,
-    CONSTRAINT chk_cart_items_price_positive CHECK (price > 0),
-    CONSTRAINT uq_cart_items_cart_listing UNIQUE (cart_id, listing_id)
-);
-
-CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON cart.cart_items(cart_id);
-CREATE INDEX IF NOT EXISTS idx_cart_items_listing_id ON cart.cart_items(listing_id);
 
 INSERT INTO identity.roles (code, name, description) VALUES
     ('SUPER_ADMIN', 'Super Administrador', 'Acceso completo al sistema'),
@@ -254,3 +211,68 @@ SELECT
 FROM listing.listings l
 INNER JOIN identity.users u ON l.seller_id = u.id
 WHERE l.status = 'PUBLISHED' AND u.is_active = true;
+
+CREATE SCHEMA IF NOT EXISTS "order";
+
+CREATE TABLE IF NOT EXISTS "order".orders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    buyer_id UUID NOT NULL,
+    cart_id UUID NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    total_amount NUMERIC(12, 2) NOT NULL,
+    shipping_address JSONB NOT NULL,
+    shipping_method VARCHAR(20) NOT NULL,
+    payment_id VARCHAR(100),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_orders_buyer FOREIGN KEY (buyer_id)
+        REFERENCES identity.users(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_orders_total_positive CHECK (total_amount > 0),
+    CONSTRAINT chk_orders_status CHECK (status IN ('PENDING', 'PAYMENT_PENDING', 'CONFIRMED', 'SHIPPING', 'DELIVERED', 'CANCELLED'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_buyer_id ON "order".orders(buyer_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status ON "order".orders(status);
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON "order".orders(created_at DESC);
+
+CREATE TRIGGER trigger_orders_updated_at
+    BEFORE UPDATE ON "order".orders
+    FOR EACH ROW
+    EXECUTE FUNCTION identity.update_updated_at_column();
+
+CREATE TABLE IF NOT EXISTS "order".order_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL,
+    listing_id UUID NOT NULL,
+    price NUMERIC(12, 2) NOT NULL,
+    sneaker_sku VARCHAR(80) NOT NULL,
+    size VARCHAR(16) NOT NULL,
+    brand VARCHAR(60) NOT NULL,
+    color VARCHAR(40) NOT NULL,
+    condition VARCHAR(24) NOT NULL,
+    cover_image VARCHAR(256),
+    CONSTRAINT fk_order_items_order FOREIGN KEY (order_id)
+        REFERENCES "order".orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_order_items_listing FOREIGN KEY (listing_id)
+        REFERENCES listing.listings(id) ON DELETE RESTRICT,
+    CONSTRAINT chk_order_items_price_positive CHECK (price > 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON "order".order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_listing_id ON "order".order_items(listing_id);
+
+CREATE TABLE IF NOT EXISTS "order".order_status_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_id UUID NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    changed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    changed_by UUID,
+    notes TEXT,
+    CONSTRAINT fk_order_status_history_order FOREIGN KEY (order_id)
+        REFERENCES "order".orders(id) ON DELETE CASCADE,
+    CONSTRAINT fk_order_status_history_user FOREIGN KEY (changed_by)
+        REFERENCES identity.users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_status_history_order_id ON "order".order_status_history(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_status_history_changed_at ON "order".order_status_history(changed_at DESC);

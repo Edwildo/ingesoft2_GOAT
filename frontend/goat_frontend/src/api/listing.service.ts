@@ -119,7 +119,8 @@ export const listingService = {
   },
 
   /**
-   * Actualiza un listing existente (solo DRAFT, requiere autenticación + rol SELLER + owner)
+   * Actualiza un listing existente (DRAFT o ARCHIVED, requiere autenticación + rol SELLER + owner)
+   * Si el listing está ARCHIVED, se cambia automáticamente a DRAFT.
    */
   updateListing: async (
     id: string,
@@ -143,7 +144,7 @@ export const listingService = {
   },
 
   /**
-   * Publica un listing (requiere autenticación + rol SELLER + owner)
+   * Publica un listing (DRAFT o ARCHIVED -> PUBLISHED, requiere autenticación + rol SELLER + owner)
    */
   publishListing: async (id: string): Promise<ApiResponse<Listing>> => {
     try {
@@ -173,6 +174,24 @@ export const listingService = {
       return {
         success: true,
         data: response.data,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: handleApiError(error),
+      };
+    }
+  },
+
+  /**
+   * Elimina un listing permanentemente (requiere autenticación + rol SELLER + owner)
+   * Solo permite eliminar listings en estado DRAFT o ARCHIVED
+   */
+  deleteListing: async (id: string): Promise<ApiResponse<void>> => {
+    try {
+      await apiClient.delete(`/api/listings/${id}`);
+      return {
+        success: true,
       };
     } catch (error) {
       return {
