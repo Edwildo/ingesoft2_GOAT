@@ -28,7 +28,7 @@ jobs:
           cache-dependency-path: "frontend/goat_frontend/package-lock.json"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Run TypeScript check
         run: npm run type-check

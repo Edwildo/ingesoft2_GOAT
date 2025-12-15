@@ -102,4 +102,9 @@ public class PostgreSQLListingRepository implements ListingRepository {
     public boolean existsByIdAndSellerId(UUID listingId, UUID sellerId) {
         return jpaRepository.existsByIdAndSellerId(listingId, sellerId);
     }
+
+    @Override
+    public void deleteById(UUID id) {
+        jpaRepository.deleteById(id);
+    }
 }

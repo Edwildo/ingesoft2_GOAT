@@ -92,7 +92,7 @@ class ValidateOTPUseCase:
         if not is_valid:
             logger.warning(f"OTP invalido para email: {sanitized_email}")
             await self._otp_repository.save(otp_token)
-            raise OTPInvalidException("OTP invalido")
+            raise OTPInvalidException("OTP inválido")
 
         logger.info(f"OTP valido para email: {sanitized_email}, purpose: {purpose.value}")
 

@@ -60,6 +60,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       password: string
     ): Promise<{ success: boolean; message: string }> => {
       try {
+        authStorage.clear();
+        setToken(null);
+        setUser(null);
+        setIsAuthenticated(false);
+
         const response: ApiResponse<{
           token: string;
           email: string;
@@ -75,6 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             roles,
           } = response.data;
 
+          // Guardar las nuevas credenciales
           authStorage.setToken(newToken);
 
           const userData: User = {
@@ -98,6 +104,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       } catch (error) {
         console.error("Login error:", error);
+        // En caso de error, asegurar que todo esté limpio
+        authStorage.clear();
+        setToken(null);
+        setUser(null);
+        setIsAuthenticated(false);
         return { success: false, message: "Error de conexión con el servidor" };
       }
     },

@@ -55,6 +55,7 @@
 .menuItem:hover {
   color: var(--theme-color-gray-900);
   border-bottom-color: var(--theme-color-gray-900);
+  text-decoration: none;
 }
 
 .userMenu {

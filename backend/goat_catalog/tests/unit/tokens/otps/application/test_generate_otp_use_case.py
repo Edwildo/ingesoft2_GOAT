@@ -21,6 +21,7 @@ class TestGenerateOTPUseCase:
         """Test que verifica la generación exitosa de un OTP."""
         # Arrange
         otp_repository = AsyncMock()
+        otp_repository.find_by_email_and_purpose = AsyncMock(return_value=None)
         otp_repository.delete_by_email_and_purpose = AsyncMock()
         otp_repository.save = AsyncMock()
 
@@ -49,6 +50,7 @@ class TestGenerateOTPUseCase:
         """Test que verifica que se elimina un OTP existente antes de crear uno nuevo."""
         # Arrange
         otp_repository = AsyncMock()
+        otp_repository.find_by_email_and_purpose = AsyncMock(return_value=None)
         otp_repository.delete_by_email_and_purpose = AsyncMock()
         otp_repository.save = AsyncMock()
 
