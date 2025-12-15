@@ -11,12 +11,13 @@ import java.math.BigDecimal;
 
 /**
  * DTO para la solicitud de actualización de un listing.
+ * El sneakerSku es opcional porque normalmente no se cambia durante la actualización.
  */
 @Getter
 @Setter
 @NoArgsConstructor
 public class UpdateListingRequest {
-    @NotBlank(message = "El SKU del sneaker es requerido")
+    // sneakerSku es opcional - si no se envía, se mantiene el valor original
     private String sneakerSku;
 
     @NotBlank(message = "La talla es requerida")

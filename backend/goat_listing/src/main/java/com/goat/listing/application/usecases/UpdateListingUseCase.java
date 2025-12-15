@@ -9,7 +9,8 @@ import java.util.UUID;
 
 /**
  * Caso de uso para actualizar un listing existente.
- * Solo permite actualizar listings en estado DRAFT.
+ * Permite actualizar listings en estado DRAFT o ARCHIVED.
+ * Si el listing está ARCHIVED, se cambia automáticamente a DRAFT.
  */
 public class UpdateListingUseCase {
     private final ListingRepository listingRepository;
@@ -20,7 +21,8 @@ public class UpdateListingUseCase {
 
     /**
      * Actualiza un listing existente.
-     * Valida que el listing esté en estado DRAFT y pertenezca al seller.
+     * Valida que el listing esté en estado DRAFT o ARCHIVED y pertenezca al seller.
+     * Si está ARCHIVED, se cambia automáticamente a DRAFT.
      *
      * @param listingId ID del listing a actualizar
      * @param sellerId ID del seller que actualiza (para validar ownership)
@@ -38,10 +40,18 @@ public class UpdateListingUseCase {
         }
 
         if (!listing.canBeEdited()) {
-            throw new IllegalStateException("Solo listings en estado DRAFT pueden editarse");
+            throw new IllegalStateException("Solo listings en estado DRAFT o ARCHIVED pueden editarse");
         }
 
-        listing.setSneakerSku(request.getSneakerSku());
+        // Si el listing está ARCHIVED, cambiarlo a DRAFT para permitir edición
+        if (listing.getStatus() == com.goat.listing.domain.enums.ListingStatus.ARCHIVED) {
+            listing.setStatus(com.goat.listing.domain.enums.ListingStatus.DRAFT);
+        }
+
+        // Solo actualizar sneakerSku si se proporciona (normalmente no se cambia)
+        if (request.getSneakerSku() != null && !request.getSneakerSku().isBlank()) {
+            listing.setSneakerSku(request.getSneakerSku());
+        }
         listing.setSize(request.getSize());
         listing.setCondition(request.getCondition());
         listing.setGender(request.getGender());

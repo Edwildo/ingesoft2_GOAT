@@ -94,6 +94,33 @@ export const MyListingsPage: React.FC = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    const listing = listings.find((l) => l.id === id);
+    const confirmMessage = listing
+      ? `¿Estás seguro de que deseas eliminar permanentemente este listing (${listing.brand} - Talla ${listing.size})? Esta acción no se puede deshacer.`
+      : "¿Estás seguro de que deseas eliminar este listing? Esta acción no se puede deshacer.";
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    try {
+      const response = await listingService.deleteListing(id);
+      if (response.success) {
+        setMessage({ type: "success", text: "Listing eliminado exitosamente" });
+        loadListings();
+      } else {
+        setMessage({
+          type: "error",
+          text: response.error?.message || "Error al eliminar listing",
+        });
+      }
+    } catch (err) {
+      console.error("Delete listing error:", err);
+      setMessage({ type: "error", text: "Error de conexión con el servidor" });
+    }
+  };
+
   const formatPrice = (price: number): string => {
     return new Intl.NumberFormat("es-CO", {
       style: "currency",
@@ -266,16 +293,56 @@ export const MyListingsPage: React.FC = () => {
                               >
                                 Publicar
                               </Button>
+                              <Button
+                                variant="outline"
+                                size="small"
+                                onClick={() => handleDelete(listing.id)}
+                                style={{ color: "#dc3545", borderColor: "#dc3545" }}
+                              >
+                                Eliminar
+                              </Button>
                             </>
                           )}
                           {listing.status === "PUBLISHED" && (
-                            <Button
-                              variant="outline"
-                              size="small"
-                              onClick={() => handleArchive(listing.id)}
-                            >
-                              Archivar
-                            </Button>
+                            <>
+                              <Button
+                                variant="outline"
+                                size="small"
+                                onClick={() => handleArchive(listing.id)}
+                              >
+                                Archivar
+                              </Button>
+                            </>
+                          )}
+                          {listing.status === "ARCHIVED" && (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="small"
+                                onClick={() =>
+                                  navigate(
+                                    `/seller/listings/${listing.id}/edit`
+                                  )
+                                }
+                              >
+                                Editar
+                              </Button>
+                              <Button
+                                variant="primary"
+                                size="small"
+                                onClick={() => handlePublish(listing.id)}
+                              >
+                                Publicar
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="small"
+                                onClick={() => handleDelete(listing.id)}
+                                style={{ color: "#dc3545", borderColor: "#dc3545" }}
+                              >
+                                Eliminar
+                              </Button>
+                            </>
                           )}
                         </div>
                       </td>

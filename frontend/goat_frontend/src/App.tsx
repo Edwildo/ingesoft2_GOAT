@@ -54,14 +54,21 @@ const SellerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 // Componente para rutas públicas (redirige si ya está autenticado)
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return <Loading fullScreen message="Cargando..." />;
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    // Redirigir según el rol del usuario
+    if (user?.roles?.includes('SELLER')) {
+      return <Navigate to="/seller/listings" replace />;
+    } else if (user?.roles?.includes('BUYER')) {
+      return <Navigate to="/shop" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return <>{children}</>;

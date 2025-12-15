@@ -18,6 +18,8 @@ import com.goat.listing.adapters.persistence.PostgreSQLListingRepository;
 import com.goat.listing.application.usecases.ArchiveListingUseCase;
 import com.goat.listing.application.usecases.CreateListingUseCase;
 import com.goat.listing.application.usecases.CreateSneakerUseCase;
+import com.goat.listing.application.usecases.DeleteListingUseCase;
+import com.goat.order.adapters.persistence.repository.OrderItemJpaRepository;
 import com.goat.listing.application.usecases.GetListingUseCase;
 import com.goat.listing.application.usecases.GetListingsUseCase;
 import com.goat.listing.application.usecases.GetMyListingsUseCase;
@@ -120,6 +122,13 @@ public class ApplicationConfig {
     @Bean
     public ArchiveListingUseCase archiveListingUseCase(ListingRepository listingRepository) {
         return new ArchiveListingUseCase(listingRepository);
+    }
+
+    @Bean
+    public DeleteListingUseCase deleteListingUseCase(
+            ListingRepository listingRepository,
+            OrderItemJpaRepository orderItemJpaRepository) {
+        return new DeleteListingUseCase(listingRepository, orderItemJpaRepository);
     }
 
     @Bean

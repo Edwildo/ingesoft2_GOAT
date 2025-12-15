@@ -72,6 +72,15 @@ export const authStorage = {
   clear: (): void => {
     authStorage.removeToken();
     authStorage.removeUser();
+    
+    try {
+      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+      localStorage.removeItem(STORAGE_KEYS.USER_DATA);
+      localStorage.removeItem(STORAGE_KEYS.USER_EMAIL);
+      localStorage.removeItem(STORAGE_KEYS.USER_ID);
+    } catch (error) {
+      console.warn('Error al limpiar localStorage:', error);
+    }
   },
 };
 

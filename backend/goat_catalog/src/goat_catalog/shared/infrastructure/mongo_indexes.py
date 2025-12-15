@@ -124,6 +124,48 @@ async def verify_otp_indexes(database: AsyncIOMotorDatabase) -> dict[str, bool]:
         return {name: False for name in required_indexes.keys()}
 
 
+async def initialize_cart_indexes(database: AsyncIOMotorDatabase) -> bool:
+    """Inicializa todos los índices necesarios para la colección 'carts'.
+    
+    Args:
+        database: Instancia de la base de datos MongoDB
+        
+    Returns:
+        True si todos los índices se crearon correctamente, False en caso contrario
+    """
+    collection = database["carts"]
+    indexes_created = []
+
+    # Crear índice TTL en expire_at (los documentos se eliminarán automáticamente)
+    success = await create_index_safe(
+        collection=collection,
+        index_spec="expire_at",
+        index_name="expire_at_ttl",
+        description="Índice TTL en 'expire_at' (eliminación automática de carritos expirados)",
+        expireAfterSeconds=0,
+    )
+    indexes_created.append(success)
+
+    # Crear índice en user_id para búsquedas rápidas
+    # Nota: No hacemos el índice único porque con TTL los carritos expirados
+    # se eliminan automáticamente, así que no habrá conflictos
+    success = await create_index_safe(
+        collection=collection,
+        index_spec="user_id",
+        index_name="user_id_index",
+        description="Índice en 'user_id' para búsquedas rápidas",
+    )
+    indexes_created.append(success)
+
+    all_success = all(indexes_created)
+    if all_success:
+        logger.info("Todos los índices de Cart fueron inicializados correctamente")
+    else:
+        logger.warning("Algunos índices de Cart no pudieron ser creados")
+
+    return all_success
+
+
 async def initialize_catalog_indexes(database: AsyncIOMotorDatabase) -> bool:
     """Inicializa todos los índices necesarios para las colecciones del catálogo.
     

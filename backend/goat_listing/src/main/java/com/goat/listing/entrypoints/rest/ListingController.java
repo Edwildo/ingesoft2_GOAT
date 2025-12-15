@@ -6,6 +6,7 @@ import com.goat.listing.application.dto.ListingResponse;
 import com.goat.listing.application.dto.UpdateListingRequest;
 import com.goat.listing.application.usecases.ArchiveListingUseCase;
 import com.goat.listing.application.usecases.CreateListingUseCase;
+import com.goat.listing.application.usecases.DeleteListingUseCase;
 import com.goat.listing.application.usecases.GetListingUseCase;
 import com.goat.listing.application.usecases.GetListingsUseCase;
 import com.goat.listing.application.usecases.GetMyListingsUseCase;
@@ -33,6 +34,7 @@ public class ListingController {
     private final UpdateListingUseCase updateListingUseCase;
     private final PublishListingUseCase publishListingUseCase;
     private final ArchiveListingUseCase archiveListingUseCase;
+    private final DeleteListingUseCase deleteListingUseCase;
     private final GetListingUseCase getListingUseCase;
     private final GetListingsUseCase getListingsUseCase;
     private final GetMyListingsUseCase getMyListingsUseCase;
@@ -43,6 +45,7 @@ public class ListingController {
             UpdateListingUseCase updateListingUseCase,
             PublishListingUseCase publishListingUseCase,
             ArchiveListingUseCase archiveListingUseCase,
+            DeleteListingUseCase deleteListingUseCase,
             GetListingUseCase getListingUseCase,
             GetListingsUseCase getListingsUseCase,
             GetMyListingsUseCase getMyListingsUseCase,
@@ -51,6 +54,7 @@ public class ListingController {
         this.updateListingUseCase = updateListingUseCase;
         this.publishListingUseCase = publishListingUseCase;
         this.archiveListingUseCase = archiveListingUseCase;
+        this.deleteListingUseCase = deleteListingUseCase;
         this.getListingUseCase = getListingUseCase;
         this.getListingsUseCase = getListingsUseCase;
         this.getMyListingsUseCase = getMyListingsUseCase;
@@ -83,10 +87,22 @@ public class ListingController {
     /**
      * Obtiene un listing por su ID.
      * Endpoint público - solo muestra listings PUBLISHED.
+     * Si el usuario autenticado es el seller del listing, puede obtenerlo en cualquier estado.
      */
     @GetMapping("/{id}")
     public ResponseEntity<ListingResponse> getListing(@PathVariable UUID id) {
-        ListingResponse response = getListingUseCase.execute(id);
+        // Intentar obtener el sellerId del contexto de seguridad si está autenticado
+        UUID sellerId = null;
+        try {
+            if (securityContextHelper.hasRole("SELLER")) {
+                sellerId = securityContextHelper.getCurrentUserId();
+            }
+        } catch (Exception e) {
+            // Si no está autenticado o no tiene rol SELLER, sellerId permanece null
+            // y se aplicará la restricción de solo PUBLISHED
+        }
+        
+        ListingResponse response = getListingUseCase.execute(id, sellerId);
         return ResponseEntity.ok(response);
     }
 
@@ -160,6 +176,20 @@ public class ListingController {
         UUID sellerId = securityContextHelper.getCurrentUserId();
         ListingResponse response = archiveListingUseCase.execute(id, sellerId);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Elimina un listing permanentemente.
+     * Solo permite eliminar listings en estado DRAFT o ARCHIVED.
+     * Los listings PUBLISHED deben archivarse primero.
+     * Requiere autenticación, rol SELLER y ser dueño del listing.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteListing(@PathVariable UUID id) {
+        validateSellerRole();
+        UUID sellerId = securityContextHelper.getCurrentUserId();
+        deleteListingUseCase.execute(id, sellerId);
+        return ResponseEntity.noContent().build();
     }
 
     /**

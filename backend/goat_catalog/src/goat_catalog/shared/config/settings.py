@@ -1,7 +1,22 @@
 """Configuración de la aplicación desde variables de entorno."""
 
+from pathlib import Path
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _get_env_file_path() -> str:
+    """Obtiene la ruta del archivo .env en la raíz del proyecto."""
+    # Buscar el .env en la raíz del proyecto (donde está start_server.py)
+    # Subimos desde src/goat_catalog/shared/config/ hasta backend/goat_catalog/
+    current_file = Path(__file__)
+    project_root = current_file.parent.parent.parent.parent.parent
+    env_file = project_root / ".env"
+    return str(env_file)
+
+
+# Calcular la ruta del .env al cargar el módulo
+_ENV_FILE_PATH = _get_env_file_path()
 
 
 class Settings(BaseSettings):
@@ -91,7 +106,7 @@ class Settings(BaseSettings):
     )
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=_ENV_FILE_PATH,
         env_file_encoding="utf-8",
         case_sensitive=False,
     )

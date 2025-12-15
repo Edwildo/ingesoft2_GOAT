@@ -7,7 +7,7 @@ import com.goat.listing.ports.ListingRepository;
 import java.util.UUID;
 
 /**
- * Caso de uso para publicar un listing (DRAFT -> PUBLISHED).
+ * Caso de uso para publicar un listing (DRAFT -> PUBLISHED o ARCHIVED -> PUBLISHED).
  */
 public class PublishListingUseCase {
     private final ListingRepository listingRepository;
@@ -17,8 +17,8 @@ public class PublishListingUseCase {
     }
 
     /**
-     * Publica un listing cambiando su estado de DRAFT a PUBLISHED.
-     * Valida que el listing pertenezca al seller y esté en estado DRAFT.
+     * Publica un listing cambiando su estado de DRAFT o ARCHIVED a PUBLISHED.
+     * Valida que el listing pertenezca al seller y esté en estado DRAFT o ARCHIVED.
      *
      * @param listingId ID del listing a publicar
      * @param sellerId ID del seller que publica (para validar ownership)

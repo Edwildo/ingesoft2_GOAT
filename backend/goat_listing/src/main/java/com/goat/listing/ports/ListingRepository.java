@@ -91,4 +91,11 @@ public interface ListingRepository {
      * @return true si el listing existe y pertenece al seller
      */
     boolean existsByIdAndSellerId(UUID listingId, UUID sellerId);
+
+    /**
+     * Elimina un listing por su ID.
+     *
+     * @param id ID del listing a eliminar
+     */
+    void deleteById(UUID id);
 }
