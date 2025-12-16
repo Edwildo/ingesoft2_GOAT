@@ -36,13 +36,15 @@ export const Navbar: React.FC = () => {
 
           {isAuthenticated ? (
             <>
-              <Link to="/dashboard" className={styles.menuItem}>
-                Dashboard
-              </Link>
               {isSeller && (
-                <Link to="/seller/listings" className={styles.menuItem}>
-                  Mis Listings
-                </Link>
+                <>
+                  <Link to="/dashboard" className={styles.menuItem}>
+                    Dashboard
+                  </Link>
+                  <Link to="/seller/listings" className={styles.menuItem}>
+                    Mis Listings
+                  </Link>
+                </>
               )}
               <div className={styles.userMenu}>
                 <span className={styles.userEmail}>{user?.email}</span>

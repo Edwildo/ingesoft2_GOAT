@@ -68,10 +68,9 @@ export const LoginPage: React.FC = () => {
         // Redirigir según el rol del usuario
         if (storedUser?.roles?.includes('SELLER')) {
           navigate("/seller/listings");
-        } else if (storedUser?.roles?.includes('BUYER')) {
-          navigate("/shop");
         } else {
-          navigate("/dashboard");
+          // Para compradores o usuarios sin rol específico, ir al shop
+          navigate("/shop");
         }
       } else {
         setMessage({ type: "error", text: result.message });

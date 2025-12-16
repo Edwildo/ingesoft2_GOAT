@@ -46,7 +46,7 @@ const SellerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (!user?.roles?.includes('SELLER')) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/shop" replace />;
   }
 
   return <>{children}</>;
@@ -64,10 +64,8 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // Redirigir según el rol del usuario
     if (user?.roles?.includes('SELLER')) {
       return <Navigate to="/seller/listings" replace />;
-    } else if (user?.roles?.includes('BUYER')) {
-      return <Navigate to="/shop" replace />;
     } else {
-      return <Navigate to="/dashboard" replace />;
+      return <Navigate to="/shop" replace />;
     }
   }
 
@@ -124,9 +122,9 @@ function AppRoutes() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <SellerRoute>
               <DashboardPage />
-            </ProtectedRoute>
+            </SellerRoute>
           }
         />
         <Route

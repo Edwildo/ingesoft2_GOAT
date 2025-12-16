@@ -129,7 +129,7 @@ export const VerifyOTPPage: React.FC<VerifyOTPPageProps> = () => {
         } else if (purpose === 'RESET_PASSWORD') {
           navigate('/reset-password', { state: { email, verified: true } });
         } else {
-          navigate('/dashboard');
+          navigate('/shop');
         }
       }, 1500);
     } else {
