@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile: build the jar with Maven then create a slim runtime image
 FROM maven:3.8.8-openjdk-17 AS build
-WORKDIR /workspace
+WORKDIR /backend/goat_listing
 COPY pom.xml .
 COPY src ./src
 
