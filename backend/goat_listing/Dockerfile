@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile: build the jar with Maven then create a slim runtime image
-FROM maven:3.8.8-openjdk-17 AS build
+FROM maven:3.9.9-eclipse-temurin-17 AS build
 # Use a consistent workspace path so COPY --from=build can find the jar
 WORKDIR /workspace
 COPY pom.xml .

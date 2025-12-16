@@ -1,5 +1,4 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
 import { Order } from "../../api/order.service";
 import { Button } from "../common/Button";
 import styles from "./CheckoutModal.module.css";
@@ -13,7 +12,6 @@ export const OrderConfirmation: React.FC<OrderConfirmationProps> = ({
   order,
   onClose,
 }) => {
-  const navigate = useNavigate();
 
   const formatPrice = (price: number): string => {
     return new Intl.NumberFormat("es-CO", {
